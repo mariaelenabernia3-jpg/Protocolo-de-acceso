@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocolo de Acceso - Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #a8ffbe; --background-color: #0d1a14;
+            --glow-color: rgba(168, 255, 190, 0.5); --border-color: rgba(168, 255, 190, 0.4);
+            --approve-color: #a8ffbe; --deny-color: #ff6e6e;
+        }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: var(--background-color); color: var(--primary-color); font-family: 'VT323', monospace; }
+        body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); --border-color: rgba(255, 194, 84, 0.4); }
+        body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); --border-color: rgba(130, 234, 255, 0.4); }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        #vignette { box-shadow: inset 0 0 25vmin rgba(0,0,0,0.8); }
+        .crt-effect::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; z-index: 11; pointer-events: none; animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.21; } 5% { opacity: 0.34; } 10% { opacity: 0.23; } 15% { opacity: 0.45; } 20% { opacity: 0.31; } 25% { opacity: 0.5; } 30% { opacity: 0.24; } 35% { opacity: 0.41; } 40% { opacity: 0.28; } 45% { opacity: 0.33; } 50% { opacity: 0.48; } 55% { opacity: 0.29; } 60% { opacity: 0.42; } 65% { opacity: 0.3; } 70% { opacity: 0.5; } 75% { opacity: 0.35; } 80% { opacity: 0.4; } 85% { opacity: 0.22; } 90% { opacity: 0.39; } 95% { opacity: 0.47; } 100% { opacity: 0.31; } }
+
+        .game-container { display: flex; height: 100vh; padding: 15px; box-sizing: border-box; gap: 15px; padding-bottom: 80px; }
+        .applicant-pane, .info-pane { border: 1px solid var(--border-color); padding: 20px; overflow-y: auto; background: rgba(0,0,0,0.2); }
+        .applicant-pane { flex: 2; }
+        .info-pane { flex: 1; display: flex; flex-direction: column; gap: 20px;}
+        
+        .info-box { border-bottom: 1px dashed var(--border-color); padding-bottom: 15px; }
+        .info-box h2 { font-family: 'Special Elite', cursive; margin: 0 0 10px 0; font-size: 2rem; text-shadow: 0 0 5px var(--glow-color); }
+        .info-box ul { list-style-type: '> '; padding-left: 20px; margin: 0; font-size: 1.5rem; }
+        #stats-box span { display: block; margin-bottom: 5px; font-size: 1.8rem; }
+        #timer-bar-container { width: 100%; height: 20px; border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.3); }
+        #timer-bar { height: 100%; width: 100%; background-color: var(--primary-color); transition: width 0.5s linear; }
+
+        .applicant-pane h1 { font-family: 'Special Elite', cursive; margin: 0 0 20px 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        .applicant-field { font-size: 1.8rem; margin-bottom: 15px; }
+        .applicant-field strong { text-transform: uppercase; color: var(--primary-color); opacity: 0.8; }
+        #applicant-name { text-shadow: 0 0 5px var(--glow-color); }
+        
+        .decision-bar { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; z-index: 5; }
+        .decision-button { flex: 1; font-family: 'VT323', monospace; font-size: 3rem; padding: 20px 0; border: none; cursor: pointer; text-transform: uppercase; border-top: 2px solid; transition: background-color 0.2s; }
+        #approve-btn { color: var(--approve-color); border-color: var(--approve-color); background-color: rgba(168, 255, 190, 0.1); }
+        #approve-btn:hover { background-color: rgba(168, 255, 190, 0.3); }
+        #deny-btn { color: var(--deny-color); border-color: var(--deny-color); background-color: rgba(255, 110, 110, 0.1); }
+        #deny-btn:hover { background-color: rgba(255, 110, 110, 0.3); }
+
+        #feedback-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20; display: none; justify-content: center; align-items: center; text-align: center; font-size: 8rem; text-transform: uppercase; animation: fade-in-out 1.5s forwards; }
+        #feedback-overlay.correct { color: var(--approve-color); text-shadow: 0 0 20px var(--approve-color); }
+        #feedback-overlay.incorrect { color: var(--deny-color); text-shadow: 0 0 20px var(--deny-color); }
+        @keyframes fade-in-out { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div id="vignette" class="overlay"></div>
+    <div id="feedback-overlay"></div>
+
+    <div class="game-container">
+        <!-- Panel de Solicitante (Izquierda) -->
+        <div class="applicant-pane">
+            <h1>Solicitud de Acceso</h1>
+            <div class="applicant-field"><strong>Nombre:</strong> <span id="applicant-name"></span></div>
+            <div class="applicant-field"><strong>País de Origen:</strong> <span id="applicant-country"></span></div>
+            <div class="applicant-field"><strong>ID de Conexión:</strong> <span id="applicant-id"></span></div>
+            <div class="applicant-field"><strong>Motivo de Conexión:</strong> <span id="applicant-reason"></span></div>
+        </div>
+
+        <!-- Panel de Información (Derecha) -->
+        <div class="info-pane">
+            <div id="stats-box" class="info-box">
+                <span id="day-counter">DÍA: 1</span>
+                <span id="money-counter">CRÉDITOS: 50</span>
+                <span id="applicant-counter">SOLICITUD: 1 / 5</span>
+            </div>
+            <div id="rules-box" class="info-box">
+                <h2>Directivas del Día</h2>
+                <ul id="rules-list"></ul>
+            </div>
+            <div id="timer-box" class="info-box">
+                <h2>Tiempo Restante</h2>
+                <div id="timer-bar-container"><div id="timer-bar"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Decisión -->
+    <div class="decision-bar">
+        <button id="approve-btn">Aprobar</button>
+        <button id="deny-btn">Denegar</button>
+    </div>
+
+    <script>
+        // --- ELEMENTOS DEL DOM ---
+        const dayCounter = document.getElementById('day-counter');
+        const moneyCounter = document.getElementById('money-counter');
+        const applicantCounter = document.getElementById('applicant-counter');
+        const rulesList = document.getElementById('rules-list');
+        const timerBar = document.getElementById('timer-bar');
+        const applicantName = document.getElementById('applicant-name');
+        const applicantCountry = document.getElementById('applicant-country');
+        const applicantId = document.getElementById('applicant-id');
+        const applicantReason = document.getElementById('applicant-reason');
+        const approveBtn = document.getElementById('approve-btn');
+        const denyBtn = document.getElementById('deny-btn');
+        const feedbackOverlay = document.getElementById('feedback-overlay');
+
+        // --- ESTADO DEL JUEGO ---
+        let slotId;
+        let gameSave;
+        let settings;
+        let currentApplicant;
+        let dayRules;
+        let timerInterval;
+        let timeLeft;
+        let applicantsProcessed = 0;
+        const dailyGoal = 5;
+        const baseTimePerApplicant = 15;
+
+        // --- DATOS DEL JUEGO ---
+        const names = ["Alejandro Díaz", "Sofía García", "Javier Rodríguez", "Camila Martínez", "Mateo Hernández", "Valentina Pérez"];
+        const countries = ["Cuba", "EE.UU.", "Rusia", "España", "México", "Canadá"];
+        const reasons = ["Intercambio Cultural", "Negocios", "Turismo", "Investigación Académica", "Contacto Familiar"];
+
+        // --- INICIALIZACIÓN ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            slotId = parseInt(urlParams.get('slot'), 10);
+
+            if (isNaN(slotId)) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            loadSettings();
+            loadGameSave();
+            startDay();
+        });
+
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('protocoloAccesoSettings');
+            settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es', difficulty: 'normal' };
+            document.body.classList.add(`theme-${settings.theme}`);
+            if (settings.crt) document.body.classList.add('crt-effect');
+        }
+
+        function loadGameSave() {
+            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+            const gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+            gameSave = gameSaves[slotId];
+        }
+
+        // --- LÓGICA DEL DÍA ---
+        function startDay() {
+            applicantsProcessed = 0;
+            updateUI();
+            setDayRules();
+            nextApplicant();
+        }
+
+        function setDayRules() {
+            rulesList.innerHTML = '';
+            // Las reglas se complican con cada día
+            switch (gameSave.day) {
+                case 1:
+                    dayRules = { allowedCountries: ["Cuba"] };
+                    addRule("Solo se permite acceso a ciudadanos de Cuba.");
+                    break;
+                case 2:
+                    dayRules = { allowedCountries: ["Cuba", "Rusia"], bannedReasons: ["Negocios"] };
+                    addRule("Acceso permitido: Cuba, Rusia.");
+                    addRule("Motivo 'Negocios' está denegado.");
+                    break;
+                case 3:
+                     dayRules = { allowedCountries: ["Cuba", "Rusia", "México"], bannedCountries: ["EE.UU."] };
+                     addRule("Acceso permitido: Cuba, Rusia, México.");
+                     addRule("Denegar todas las solicitudes de EE.UU.");
+                     break;
+                default:
+                    dayRules = { bannedCountries: ["EE.UU.", "España"], bannedReasons: ["Turismo", "Negocios"] };
+                    addRule("Acceso denegado a: EE.UU., España.");
+                    addRule("Motivos denegados: Turismo, Negocios.");
+                    break;
+            }
+        }
+
+        function addRule(text) {
+            const li = document.createElement('li');
+            li.textContent = text;
+            rulesList.appendChild(li);
+        }
+
+        function nextApplicant() {
+            if (applicantsProcessed >= dailyGoal) {
+                endDay();
+                return;
+            }
+            applicantsProcessed++;
+            currentApplicant = generateApplicant();
+            updateUI();
+            startTimer();
+        }
+
+        function endDay() {
+            clearInterval(timerInterval);
+            approveBtn.disabled = true;
+            denyBtn.disabled = true;
+            showFeedback(true, `FIN DEL DÍA ${gameSave.day}<br><small>Ganancia: ${gameSave.money} créditos</small>`);
+            
+            gameSave.day++;
+            
+            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+            let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+            gameSaves[slotId] = gameSave;
+            localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+
+            setTimeout(() => location.reload(), 4000);
+        }
+
+        // --- LÓGICA DEL SOLICITANTE ---
+        function generateApplicant() {
+            const applicant = {
+                name: names[Math.floor(Math.random() * names.length)],
+                country: countries[Math.floor(Math.random() * countries.length)],
+                id: `VEN-${Math.floor(1000 + Math.random() * 9000)}`,
+                reason: reasons[Math.floor(Math.random() * reasons.length)],
+            };
+
+            // Determinar si es válido basado en las reglas del día
+            let isValid = true;
+            if (dayRules.allowedCountries && !dayRules.allowedCountries.includes(applicant.country)) isValid = false;
+            if (dayRules.bannedCountries && dayRules.bannedCountries.includes(applicant.country)) isValid = false;
+            if (dayRules.bannedReasons && dayRules.bannedReasons.includes(applicant.reason)) isValid = false;
+            applicant.isValid = isValid;
+
+            return applicant;
+        }
+
+        // --- LÓGICA DE DECISIÓN ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            let time = baseTimePerApplicant;
+            if (settings.difficulty === 'short') time *= 0.7;
+            if (settings.difficulty === 'long') time *= 1.5;
+            timeLeft = time;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerBar.style.width = `${(timeLeft / time) * 100}%`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    processDecision(false);
+                }
+            }, 1000);
+        }
+
+        function processDecision(playerApproves) {
+            clearInterval(timerInterval);
+            const isCorrect = playerApproves === currentApplicant.isValid;
+
+            if (isCorrect) {
+                gameSave.money += 10;
+                showFeedback(true);
+            } else {
+                gameSave.money -= 15;
+                showFeedback(false);
+            }
+            
+            setTimeout(nextApplicant, 1600);
+        }
+
+        approveBtn.addEventListener('click', () => processDecision(true));
+        denyBtn.addEventListener('click', () => processDecision(false));
+
+        // --- FUNCIONES DE UI ---
+        function updateUI() {
+            dayCounter.textContent = `DÍA: ${gameSave.day}`;
+            moneyCounter.textContent = `CRÉDITOS: ${gameSave.money}`;
+            applicantCounter.textContent = `SOLICITUD: ${applicantsProcessed} / ${dailyGoal}`;
+            if (currentApplicant) {
+                applicantName.textContent = currentApplicant.name;
+                applicantCountry.textContent = currentApplicant.country;
+                applicantId.textContent = currentApplicant.id;
+                applicantReason.textContent = currentApplicant.reason;
+            }
+        }
+
+        function showFeedback(isCorrect, customHtml = '') {
+            feedbackOverlay.classList.remove('correct', 'incorrect');
+            if (isCorrect) {
+                feedbackOverlay.innerHTML = customHtml || 'CORRECTO';
+                feedbackOverlay.classList.add('correct');
+            } else {
+                feedbackOverlay.innerHTML = customHtml || 'INCORRECTO';
+                feedbackOverlay.classList.add('incorrect');
+            }
+            feedbackOverlay.style.display = 'flex';
+            setTimeout(() => feedbackOverlay.style.display = 'none', 1500);
+        }
+    </script>
+</body>
+</html>
