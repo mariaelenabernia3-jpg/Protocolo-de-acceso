@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocolo de Acceso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+
+    <style>
+        /* === VARIABLES DE COLOR Y CONFIGURACIÓN GENERAL === */
+        :root {
+            --primary-color: #a8ffbe; --background-color: #0d1a14;
+            --glow-color: rgba(168, 255, 190, 0.5); --border-color: rgba(168, 255, 190, 0.4);
+            --danger-color: #ff6e6e; --danger-border-color: rgba(255, 110, 110, 0.6);
+        }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: var(--background-color); color: var(--primary-color); font-family: 'VT323', monospace; }
+
+        /* === EFECTOS VISUALES GLOBALES (FONDO, VIÑETA, CRT MEJORADO) === */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        #background-texture { z-index: -1; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3wwCEg8NFxLSWAAAACV0RVhdotQ3JlYXRpb24gVGltZQA0LzEyLzEzOItaCwAAABh0RVhdotU29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAAlklEQVR42sWY2w6AIAwEIe8be3/f/9s108Ahwa3zZD4E2ATi0MreWkAYLdNxAEOTABq3wLA4gBaoAEb0QYIBhQc8sFiB1G06wKiAdxYIfgT0L8j3wK8VIMvAa2gIAR3sC8w4gCAlYwBwQ5gRwHcD7w8gScQyB24KkQ+ACWwEgrA2gT8GohgF+wV4AmuwWXgAmuwFfAIPoA3sAZfARPAIysB1wH74a+A57gBvygAbsgB3yIboA3YwBfyA/dwB/yA/dAB3yA/d8B/yA/dwBnyA3eAEPwAf8AIfgA/4AIfwAf8AMfgA/4AQ/gA34AQ/gA34AQ/gA34AMfgA34AQ/gA/4AMfwA/4AMfwA34AMfgA/4AQ/gA34AQ/gB74Ab8gA/4Ab8gA34Ab8gA/4Ab8gA/4Ab8gB/yA/dAB/4Ab8gB/yA/dwB3yA/d8B3yA/d8B/yIboBnyA3eAEPwAf8AIfgA/4AIfwAf8AMfgA/4AQ/gA/4AQ/gA34AQ/gA34AQ/gA34AMfwA/4AMfwA/4AMfwA34AMfwA/4Ab8gA/4Ab8gA/4Ab8gA/4Ab8gA/4Ab8gB/yA/dAB/4Ab8gB/yA/dwB3yA/d8B/yA/d8B/yIboBnyA3eAEPoA3sAZfARPAIysB1wH74a+A57gBvygAbsgB3yIboB3YwBfyA/dwB/yA/dAB3yA/d8B3yA/dwBnyA3eAEPwA/wBe4gAABK3yYwAAAABJRU5ErkJggg=='); opacity: 0.05; }
+        #vignette { box-shadow: inset 0 0 25vmin rgba(0,0,0,0.8); }
+        .crt-effect::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 11; pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+        .crt-effect .screen { transform: scale(1.05); }
+
+        /* === GESTIÓN DE PANTALLAS Y MODALES === */
+        .screen { display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; z-index: 2; opacity: 0; visibility: hidden; transition: opacity 0.5s, visibility 0.5s, transform 0.5s; }
+        .screen.active { opacity: 1; visibility: visible; }
+        .prompt-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; display: flex; justify-content: center; align-items: center; background-color: rgba(0,0,0,0.7); opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+        .prompt-overlay.active { opacity: 1; visibility: visible; }
+        .prompt-box { background-color: var(--background-color); border: 1px solid var(--border-color); padding: 30px; text-align: center; font-size: 1.5rem; display: flex; flex-direction: column; gap: 25px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .prompt-box .menu { display: flex; gap: 20px; justify-content: center; }
+        
+        /* === ELEMENTOS COMUNES === */
+        .menu-button { font-family: 'VT323', monospace; font-size: 2rem; background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 10px 40px; cursor: pointer; min-width: 300px; text-transform: uppercase; }
+        .menu-button:hover { background-color: var(--primary-color); color: var(--background-color); box-shadow: 0 0 15px var(--glow-color); transition: background-color 0.2s, color 0.2s; }
+        h2.screen-title { font-family: 'Special Elite', cursive; font-size: 2.5rem; letter-spacing: 1px; margin-bottom: 30px; text-shadow: 0 0 5px var(--glow-color); }
+
+        /* === PANTALLA DE MENÚ PRINCIPAL === */
+        #main-menu-screen header h1 { font-family: 'Special Elite', cursive; font-size: 4rem; text-transform: uppercase; text-shadow: 0 0 2px #fff, 0 0 5px var(--glow-color), 0 0 10px var(--glow-color); margin-bottom: 70px; white-space: nowrap; overflow: hidden; border-right: .15em solid var(--primary-color); letter-spacing: .15em; animation: typing 3s steps(20, end) 0.5s forwards, blink-caret .75s step-end infinite; width: 0; }
+        #main-menu-screen .menu { display: flex; flex-direction: column; gap: 25px; }
+
+        /* === PANTALLA DE RANURAS DE GUARDADO === */
+        #new-game-screen .slots-container { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
+        .slot { width: 450px; height: 80px; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; }
+        .slot-info { text-align: right; }
+        .slot-title { font-size: 2rem; }
+        .slot-status { font-size: 1.2rem; opacity: 0.7; }
+        .slot.slot-empty .slot-status { opacity: 0.5; }
+
+        /* === PANTALLA DE CRÉDITOS === */
+        #credits-screen { text-align: center; } #credits-screen h2 { font-family: 'Special Elite', cursive; font-size: 3rem; margin-bottom: 30px; } #credits-screen p { font-size: 1.5rem; margin: 0; } #credits-screen h1 { font-size: 6rem; margin: 10px 0 5px 0; letter-spacing: 10px; animation: text-glow 2s ease-in-out infinite alternate; } #credits-screen .credit-subtitle { font-size: 1.2rem; margin-top: 15px; margin-bottom: 40px; opacity: 0.8; }
+        
+        /* === PANTALLA DE CONFIGURACIÓN === */
+        #options-screen { gap: 15px; } #options-screen h2 { font-family: 'Special Elite', cursive; font-size: 2.5rem; margin-bottom: 0; letter-spacing: 1px; }
+        .options-container { width: 100%; max-width: 600px; border: 1px solid var(--border-color); padding: 20px; background-color: rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 15px; }
+        .option-section { border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; }
+        .option-row { display: flex; justify-content: space-between; align-items: center; font-size: 1.5rem; }
+        .option-control { display: flex; align-items: center; gap: 10px; }
+        .control-button { font-size: 1.5rem; color: var(--primary-color); background: none; border: none; cursor: pointer; }
+        .toggle-value { cursor: pointer; }
+        .volume-bar { letter-spacing: -2px; }
+        .description { font-size: 1.2rem; margin-top: 5px; opacity: 0.7; min-height: 40px; }
+        .option-note { font-size: 1rem; opacity: 0.6; margin: -10px 0 10px 0; padding-left: 1rem; }
+        #reset-progress { color: var(--danger-color); border-color: var(--danger-border-color); }
+        #reset-progress:hover { background-color: var(--danger-color); color: var(--background-color); }
+        .options-footer { display: flex; justify-content: space-between; width: 100%; max-width: 640px; align-items: center; }
+        #save-status { opacity: 0; transition: opacity 0.5s; }
+
+        /* === ANIMACIONES Y TEMAS === */
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--primary-color); } }
+        @keyframes text-glow { from { text-shadow: 0 0 10px #fff, 0 0 20px var(--glow-color); } to { text-shadow: 0 0 20px #fff, 0 0 40px var(--glow-color); } }
+        @keyframes flicker { 0% { opacity: 0.21; } 5% { opacity: 0.34; } 10% { opacity: 0.23; } 15% { opacity: 0.45; } 20% { opacity: 0.31; } 25% { opacity: 0.5; } 30% { opacity: 0.24; } 35% { opacity: 0.41; } 40% { opacity: 0.28; } 45% { opacity: 0.33; } 50% { opacity: 0.48; } 55% { opacity: 0.29; } 60% { opacity: 0.42; } 65% { opacity: 0.3; } 70% { opacity: 0.5; } 75% { opacity: 0.35; } 80% { opacity: 0.4; } 85% { opacity: 0.22; } 90% { opacity: 0.39; } 95% { opacity: 0.47; } 100% { opacity: 0.31; } }
+        body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); --border-color: rgba(255, 194, 84, 0.4); }
+        body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); --border-color: rgba(130, 234, 255, 0.4); }
+        .no-animation * { animation: none !important; transition: none !important; }
+
+        /* === ADAPTACIÓN A MÓVILES === */
+        @media (max-width: 768px) {
+            .menu-button { font-size: 1.5rem; min-width: 0; width: 90vw; padding: 12px 20px; }
+            #main-menu-screen header h1 { font-size: 2.2rem; }
+            #credits-screen h1 { font-size: 3.5rem; }
+            .slot { width: 90vw; max-width: 400px; height: auto; flex-direction: column; padding: 15px; gap: 5px;}
+            .prompt-box { width: 80vw; } .prompt-box .menu { flex-direction: column; gap: 15px; }
+            #options-screen { justify-content: flex-start; padding-top: 30px; gap: 10px; }
+            .options-container, .options-footer { width: 90%; max-width: 90%; }
+            .option-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+            .option-note { padding-left: 0; }
+            .options-container { padding: 15px; }
+            #options-screen h2 { font-size: 2rem; }
+            .options-footer { flex-direction: column; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="background-texture" class="overlay"></div>
+    <div id="vignette" class="overlay"></div>
+
+    <!-- PANTALLA DE MENÚ PRINCIPAL -->
+    <div id="main-menu-screen" class="screen active">
+        <header><h1 data-lang-key="gameTitle">Protocolo de Acceso</h1></header>
+        <nav class="menu">
+            <button id="new-game-btn" class="menu-button" data-lang-key="newGame">Nueva Partida</button>
+            <button id="options-btn" class="menu-button" data-lang-key="options">Configuración</button>
+            <button id="credits-btn" class="menu-button" data-lang-key="credits">Créditos</button>
+        </nav>
+    </div>
+
+    <!-- PANTALLA DE SELECCIÓN DE RANURA -->
+    <div id="new-game-screen" class="screen">
+        <h2 class="screen-title" data-lang-key="selectSlot">Seleccionar Ranura</h2>
+        <div class="slots-container">
+            <button class="menu-button slot" data-slot-id="0">
+                <span class="slot-title" data-lang-key="slot" data-lang-var="1">RANURA 1</span>
+                <div class="slot-info"><span class="slot-status"></span></div>
+            </button>
+            <button class="menu-button slot" data-slot-id="1">
+                <span class="slot-title" data-lang-key="slot" data-lang-var="2">RANURA 2</span>
+                <div class="slot-info"><span class="slot-status"></span></div>
+            </button>
+            <button class="menu-button slot" data-slot-id="2">
+                <span class="slot-title" data-lang-key="slot" data-lang-var="3">RANURA 3</span>
+                <div class="slot-info"><span class="slot-status"></span></div>
+            </button>
+        </div>
+        <button id="back-from-new-game-btn" class="menu-button" data-lang-key="back">Volver</button>
+    </div>
+
+    <!-- PANTALLA DE CRÉDITOS -->
+    <div id="credits-screen" class="screen">
+        <h2 data-lang-key="creditsTitle">Créditos</h2>
+        <p data-lang-key="creator">Creador:</p>
+        <h1>DZM</h1>
+        <p class="credit-subtitle" data-lang-key="translationCredit">Traducción: ChatGPT</p>
+        <button id="back-from-credits-btn" class="menu-button" data-lang-key="back">Volver</button>
+    </div>
+
+    <!-- PANTALLA DE CONFIGURACIÓN -->
+    <div id="options-screen" class="screen">
+        <h2 data-lang-key="optionsTitle">Configuración de Terminal</h2>
+        <div class="options-container">
+            <!-- Audio -->
+            <div class="option-section">
+                <h3 data-lang-key="audio">Audio</h3>
+                <div class="option-row"><span data-lang-key="masterVolume">Volumen General</span><div class="option-control"><button class="control-button" id="master-vol-minus">[ - ]</button><span class="volume-bar" id="master-vol-bar"></span><button class="control-button" id="master-vol-plus">[ + ]</button></div></div>
+                <div class="option-row"><span data-lang-key="sfxVolume">Volumen SFX</span><div class="option-control"><button class="control-button" id="sfx-vol-minus">[ - ]</button><span class="volume-bar" id="sfx-vol-bar"></span><button class="control-button" id="sfx-vol-plus">[ + ]</button></div></div>
+            </div>
+            <!-- Video -->
+            <div class="option-section">
+                <h3 data-lang-key="video">Video</h3>
+                <div class="option-row"><span data-lang-key="fullscreen">Pantalla Completa</span><div class="option-control"><span class="toggle-value" id="fullscreen-toggle">[ OFF ]</span></div></div>
+                <p class="option-note" data-lang-key="fullscreenNote">(No recomendable para celular)</p>
+                <div class="option-row"><span data-lang-key="crtFilter">Filtro Monitor CRT</span><div class="option-control"><span class="toggle-value" id="crt-toggle">[ ON ]</span></div></div>
+                <div class="option-row"><span data-lang-key="colorPalette">Paleta de Colores</span><div class="option-control"><span class="toggle-value" id="theme-toggle">[ Verde ]</span></div></div>
+                <div class="option-row"><span data-lang-key="reduceAnimation">Reducir Animación</span><div class="option-control"><span class="toggle-value" id="animation-toggle">[ OFF ]</span></div></div>
+            </div>
+            <!-- Accesibilidad y Juego -->
+            <div class="option-section">
+                <h3 data-lang-key="accessibility">Accesibilidad y Juego</h3>
+                <div class="option-row"><span data-lang-key="language">Idioma</span><div class="option-control"><span class="toggle-value" id="lang-toggle">[ Español ]</span></div></div>
+                <div class="option-row"><span data-lang-key="dayDuration">Duración del Día</span><div class="option-control"><span class="toggle-value" id="difficulty-toggle">[ Normal ]</span></div></div>
+                <p class="description" id="difficulty-desc"></p>
+            </div>
+        </div>
+        <div class="options-footer">
+            <button id="reset-progress" class="menu-button" data-lang-key="resetProgress">Reiniciar Progreso</button>
+            <button id="back-from-options-btn" class="menu-button" data-lang-key="back">Volver</button>
+            <div><button id="save-btn" class="menu-button" data-lang-key="save">Guardar</button><span id="save-status" data-lang-key="saved">¡Guardado!</span></div>
+        </div>
+    </div>
+    
+    <!-- MODAL DE PREGUNTA DE TUTORIAL -->
+    <div id="tutorial-prompt" class="prompt-overlay">
+        <div class="prompt-box">
+            <p data-lang-key="tutorialPrompt">¿Iniciar partida con tutorial?</p>
+            <div class="menu">
+                <button id="tutorial-yes" class="menu-button" data-lang-key="yes">Sí</button>
+                <button id="tutorial-no" class="menu-button" data-lang-key="no">No</button>
+                <button id="tutorial-cancel" class="menu-button" data-lang-key="cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DICCIONARIO DE IDIOMAS ---
+        const langStrings = {
+            'es': {
+                gameTitle: "Protocolo de Acceso", newGame: "Nueva Partida", options: "Configuración", credits: "Créditos",
+                creditsTitle: "Créditos", creator: "Creador:", back: "Volver",
+                optionsTitle: "Configuración de Terminal", audio: "Audio", masterVolume: "Volumen General",
+                sfxVolume: "Volumen SFX", video: "Video", fullscreen: "Pantalla Completa",
+                crtFilter: "Filtro Monitor CRT", colorPalette: "Paleta de Colores", reduceAnimation: "Reducir Animación",
+                accessibility: "Accesibilidad y Juego", language: "Idioma", dayDuration: "Duración del Día",
+                difficultyDescShort: "DIFÍCIL: Menos tiempo para inspeccionar. Mayor presión.",
+                difficultyDescNormal: "NORMAL: La experiencia de juego estándar.",
+                difficultyDescLong: "FÁCIL: Más tiempo para revisar documentos con calma.",
+                resetProgress: "Reiniciar Progreso", save: "Guardar", saved: "¡Guardado!",
+                resetConfirm: "¿Estás seguro? Se borrará todo tu progreso de forma permanente.",
+                translationCredit: "Traducción: ChatGPT", fullscreenNote: "(No recomendable para celular)",
+                selectSlot: "Seleccionar Ranura", slot: "RANURA", emptySlot: "[ VACÍA ]", day: "Día",
+                tutorialPrompt: "¿Iniciar partida con tutorial?", yes: "Sí", no: "No", cancel: "Cancelar",
+                loadGameConfirm: "¿Cargar partida guardada?"
+            },
+            'en': {
+                gameTitle: "Access Protocol", newGame: "New Game", options: "Settings", credits: "Credits",
+                creditsTitle: "Credits", creator: "Creator:", back: "Back",
+                optionsTitle: "Terminal Configuration", audio: "Audio", masterVolume: "Master Volume",
+                sfxVolume: "SFX Volume", video: "Video", fullscreen: "Fullscreen",
+                crtFilter: "CRT Monitor Filter", colorPalette: "Color Palette", reduceAnimation: "Reduce Animation",
+                accessibility: "Accessibility & Game", language: "Language", dayDuration: "Day Duration",
+                difficultyDescShort: "HARD: Less time for inspection. Higher pressure.",
+                difficultyDescNormal: "NORMAL: The standard gameplay experience.",
+                difficultyDescLong: "EASY: More time to calmly review documents.",
+                resetProgress: "Reset Progress", save: "Save", saved: "Saved!",
+                resetConfirm: "Are you sure? All your progress will be permanently deleted.",
+                translationCredit: "Translation: ChatGPT", fullscreenNote: "(Not recommended for mobile)",
+                selectSlot: "Select Slot", slot: "SLOT", emptySlot: "[ EMPTY ]", day: "Day",
+                tutorialPrompt: "Start game with tutorial?", yes: "Yes", no: "No", cancel: "Cancel",
+                loadGameConfirm: "Load saved game?"
+            }
+        };
+
+        // --- ESTADO Y AJUSTES DEL JUEGO ---
+        let settings = { lang: 'es', masterVol: 8, sfxVol: 10, fullscreen: false, crt: true, theme: 'green', animation: true, difficulty: 'normal' };
+        let gameSaves = [null, null, null];
+        let selectedSlotId = null;
+        const themes = ['green', 'amber', 'blue'];
+        const difficulties = ['short', 'normal', 'long'];
+        const languages = ['es', 'en'];
+
+        // --- SELECTORES DEL DOM ---
+        const body = document.body;
+        const allScreens = document.querySelectorAll('.screen');
+        const mainMenuScreen = document.getElementById('main-menu-screen');
+        const newGameScreen = document.getElementById('new-game-screen');
+        const creditsScreen = document.getElementById('credits-screen');
+        const optionsScreen = document.getElementById('options-screen');
+        const tutorialPrompt = document.getElementById('tutorial-prompt');
+        
+        // --- NAVEGACIÓN ---
+        const goToScreen = (screen) => { allScreens.forEach(s => s.classList.remove('active')); screen.classList.add('active'); };
+        document.getElementById('new-game-btn').addEventListener('click', () => { loadGameSaves(); goToScreen(newGameScreen); });
+        document.getElementById('options-btn').addEventListener('click', () => goToScreen(optionsScreen));
+        document.getElementById('credits-btn').addEventListener('click', () => goToScreen(creditsScreen));
+        document.getElementById('back-from-new-game-btn').addEventListener('click', () => goToScreen(mainMenuScreen));
+        document.getElementById('back-from-credits-btn').addEventListener('click', () => goToScreen(mainMenuScreen));
+        document.getElementById('back-from-options-btn').addEventListener('click', () => { loadSettings(); goToScreen(mainMenuScreen); });
+
+        // --- LÓGICA DE PARTIDAS GUARDADAS ---
+        const loadGameSaves = () => {
+            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+            gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+            document.querySelectorAll('.slot').forEach((slotButton, index) => {
+                const slotData = gameSaves[index];
+                const statusEl = slotButton.querySelector('.slot-status');
+                slotButton.classList.toggle('slot-empty', !slotData);
+                statusEl.textContent = slotData ? `${langStrings[settings.lang].day}: ${slotData.day}` : langStrings[settings.lang].emptySlot;
+            });
+        };
+
+        // --- LÓGICA DEL MODAL DE TUTORIAL ---
+        const showTutorialPrompt = () => tutorialPrompt.classList.add('active');
+        const hideTutorialPrompt = () => tutorialPrompt.classList.remove('active');
+        
+        document.querySelector('.slots-container').addEventListener('click', (e) => {
+            const slotButton = e.target.closest('.slot');
+            if (!slotButton) return;
+            selectedSlotId = parseInt(slotButton.dataset.slotId, 10);
+            if (gameSaves[selectedSlotId]) {
+                if (confirm(langStrings[settings.lang].loadGameConfirm)) {
+                    // Si el jugador confirma cargar, redirige a la página de lore (o de juego directamente)
+                    window.location.href = `lore.html?slot=${selectedSlotId}`;
+                }
+            } else {
+                showTutorialPrompt();
+            }
+        });
+
+        document.getElementById('tutorial-yes').addEventListener('click', () => {
+            hideTutorialPrompt();
+            // Redirige a la página de lore con el parámetro de tutorial
+            window.location.href = `lore.html?slot=${selectedSlotId}&tutorial=true`;
+        });
+        document.getElementById('tutorial-no').addEventListener('click', () => {
+            hideTutorialPrompt();
+            // Redirige a la página de lore sin el parámetro de tutorial
+            window.location.href = `lore.html?slot=${selectedSlotId}&tutorial=false`;
+        });
+        document.getElementById('tutorial-cancel').addEventListener('click', hideTutorialPrompt);
+
+        // --- LÓGICA DE CONFIGURACIÓN ---
+        const updateUI = () => {
+            document.querySelectorAll('[data-lang-key]').forEach(el => {
+                const key = el.getAttribute('data-lang-key');
+                if(langStrings[settings.lang][key]) {
+                    let text = langStrings[settings.lang][key];
+                    if (el.dataset.langVar) { text += ` ${el.dataset.langVar}`; }
+                    el.textContent = text;
+                }
+            });
+            loadGameSaves(); // Actualiza ranuras por si cambió el idioma
+            body.className = '';
+            if (settings.crt) body.classList.add('crt-effect');
+            if (!settings.animation) body.classList.add('no-animation');
+            body.classList.add(`theme-${settings.theme}`);
+            // ... (resto de la lógica de UI de opciones)
+            document.getElementById('master-vol-bar').textContent = '█'.repeat(settings.masterVol) + '░'.repeat(10 - settings.masterVol);
+            document.getElementById('sfx-vol-bar').textContent = '█'.repeat(settings.sfxVol) + '░'.repeat(10 - settings.sfxVol);
+            if(settings.difficulty === 'short') document.getElementById('difficulty-desc').textContent = langStrings[settings.lang].difficultyDescShort;
+            else if(settings.difficulty === 'normal') document.getElementById('difficulty-desc').textContent = langStrings[settings.lang].difficultyDescNormal;
+            else document.getElementById('difficulty-desc').textContent = langStrings[settings.lang].difficultyDescLong;
+            document.getElementById('fullscreen-toggle').textContent = `[ ${settings.fullscreen ? 'ON' : 'OFF'} ]`;
+            document.getElementById('crt-toggle').textContent = `[ ${settings.crt ? 'ON' : 'OFF'} ]`;
+            document.getElementById('theme-toggle').textContent = `[ ${settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)} ]`;
+            document.getElementById('animation-toggle').textContent = `[ ${settings.animation ? 'ON' : 'OFF'} ]`;
+            document.getElementById('lang-toggle').textContent = `[ ${settings.lang === 'es' ? 'Español' : 'English'} ]`;
+            const difficultyMap = { short: (settings.lang === 'es' ? 'Corto' : 'Short'), normal: 'Normal', long: (settings.lang === 'es' ? 'Largo' : 'Long') };
+            document.getElementById('difficulty-toggle').textContent = `[ ${difficultyMap[settings.difficulty]} ]`;
+        };
+        const loadSettings = () => { const saved = localStorage.getItem('protocoloAccesoSettings'); if(saved) { settings = JSON.parse(saved); } updateUI(); };
+        const saveSettings = () => { localStorage.setItem('protocoloAccesoSettings', JSON.stringify(settings)); document.getElementById('save-status').style.opacity = '1'; setTimeout(() => { document.getElementById('save-status').style.opacity = '0'; }, 2000); };
+        
+        // --- EVENTOS DE CONFIGURACIÓN ---
+        document.getElementById('save-btn').addEventListener('click', saveSettings);
+        document.getElementById('reset-progress').addEventListener('click', () => { if(confirm(langStrings[settings.lang].resetConfirm)) { localStorage.removeItem('protocoloAccesoGameSaves'); loadGameSaves();} });
+        const elem = document.documentElement;
+        document.addEventListener('fullscreenchange', () => { settings.fullscreen = !!document.fullscreenElement; updateUI(); });
+        document.getElementById('fullscreen-toggle').addEventListener('click', () => { if (!!document.fullscreenElement) { if(document.exitFullscreen) document.exitFullscreen(); } else { if(elem.requestFullscreen) elem.requestFullscreen(); } });
+        document.getElementById('master-vol-minus').addEventListener('click', () => { if(settings.masterVol > 0) settings.masterVol--; updateUI(); });
+        document.getElementById('master-vol-plus').addEventListener('click', () => { if(settings.masterVol < 10) settings.masterVol++; updateUI(); });
+        document.getElementById('sfx-vol-minus').addEventListener('click', () => { if(settings.sfxVol > 0) settings.sfxVol--; updateUI(); });
+        document.getElementById('sfx-vol-plus').addEventListener('click', () => { if(settings.sfxVol < 10) settings.sfxVol++; updateUI(); });
+        document.getElementById('crt-toggle').addEventListener('click', () => { settings.crt = !settings.crt; updateUI(); });
+        document.getElementById('animation-toggle').addEventListener('click', () => { settings.animation = !settings.animation; updateUI(); });
+        document.getElementById('theme-toggle').addEventListener('click', () => { settings.theme = themes[(themes.indexOf(settings.theme) + 1) % themes.length]; updateUI(); });
+        document.getElementById('lang-toggle').addEventListener('click', () => { settings.lang = languages[(languages.indexOf(settings.lang) + 1) % languages.length]; updateUI(); });
+        document.getElementById('difficulty-toggle').addEventListener('click', () => { settings.difficulty = difficulties[(difficulties.indexOf(settings.difficulty) + 1) % difficulties.length]; updateUI(); });
+
+        // --- INICIALIZACIÓN ---
+        loadSettings();
+    </script>
+</body>
+</html>
