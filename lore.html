@@ -60,102 +60,86 @@
     </div>
 
     <script>
-    const loreTextElement = document.getElementById('lore-text');
-    const continuePrompt = document.getElementById('continue-prompt');
+        const loreTextElement = document.getElementById('lore-text');
+        const continuePrompt = document.getElementById('continue-prompt');
 
-    // --- LORE DEL JUEGO (VERSIÓN CUBA) ---
-    const lore_es = [
-        "Camarada, su asignación ha sido confirmada. Bienvenido al Proyecto 'Ventana Digital'.",
-        "Por primera vez, nuestra nación abre un canal de información controlado con el mundo exterior. El futuro depende de su éxito.",
-        "Usted es un Operador de Integridad Informativa. Su deber: ser el guardián de nuestra soberanía digital.",
-        "Cada solicitud de conexión, cada paquete de datos, debe ser analizado. Busque propaganda, desinformación o intentos de explotación comercial.",
-        "El equilibrio es frágil. Permitimos el progreso, pero nunca a costa de nuestra identidad y principios.",
-        "Su terminal está activa. El futuro de nuestra soberanía digital está en sus manos. Demuestre su compromiso."
-    ];
-    
-    const lore_en = [
-        "Comrade, your assignment has been confirmed. Welcome to the 'Digital Window' Project.",
-        "For the first time, our nation is opening a controlled information channel to the outside world. The future depends on its success.",
-        "You are an Information Integrity Operator. Your duty: to be the guardian of our digital sovereignty.",
-        "Every connection request, every data packet, must be analyzed. Look for propaganda, disinformation, or attempts at commercial exploitation.",
-        "The balance is fragile. We allow progress, but never at the cost of our identity and principles.",
-        "Your terminal is active. The future of our digital sovereignty is in your hands. Show your commitment."
-    ];
-
-    let lore;
-    let loreIndex = 0;
-    let slotId;
-    let withTutorial;
-
-    // --- FUNCIÓN PARA INICIAR EL JUEGO ---
-    function startGame() {
-        // Elimina el evento para no poder hacer click de nuevo
-        document.removeEventListener('click', advanceLore);
-        continuePrompt.style.display = 'none';
-        loreTextElement.textContent = "INICIANDO SISTEMA...";
-
-        // Lógica para crear un nuevo juego
-        const urlParams = new URLSearchParams(window.location.search);
-        const isNewGame = urlParams.has('tutorial'); // Solo las partidas nuevas tienen el parámetro 'tutorial'
+        // --- LORE DEL JUEGO (VERSIÓN CUBA) ---
+        const lore_es = [
+            "Camarada, su asignación ha sido confirmada. Bienvenido al Proyecto 'Ventana Digital'.",
+            "Por primera vez, nuestra nación abre un canal de información controlado con el mundo exterior. El futuro depende de su éxito.",
+            "Usted es un Operador de Integridad Informativa. Su deber: ser el guardián de nuestra soberanía digital.",
+            "Cada solicitud de conexión, cada paquete de datos, debe ser analizado. Busque propaganda, desinformación o intentos de explotación comercial.",
+            "El equilibrio es frágil. Permitimos el progreso, pero nunca a costa de nuestra identidad y principios.",
+            "Su terminal está activa. El futuro de nuestra soberanía digital está en sus manos. Demuestre su compromiso."
+        ];
         
-        if (isNewGame) {
-            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
-            let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+        const lore_en = [
+            "Comrade, your assignment has been confirmed. Welcome to the 'Digital Window' Project.",
+            "For the first time, our nation is opening a controlled information channel to the outside world. The future depends on its success.",
+            "You are an Information Integrity Operator. Your duty: to be the guardian of our digital sovereignty.",
+            "Every connection request, every data packet, must be analyzed. Look for propaganda, disinformation, or attempts at commercial exploitation.",
+            "The balance is fragile. We allow progress, but never at the cost of our identity and principles.",
+            "Your terminal is active. The future of our digital sovereignty is in your hands. Show your commitment."
+        ];
+
+        let lore;
+        let loreIndex = 0;
+        let slotId;
+        
+        function startGame() {
+            document.removeEventListener('click', advanceLore);
+            continuePrompt.style.display = 'none';
+            loreTextElement.textContent = "CARGANDO PROTOCOLOS...";
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const isNewGame = urlParams.has('tutorial');
             
-            gameSaves[slotId] = { day: 1, money: 100, tutorial: withTutorial };
-            localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+            if (isNewGame) {
+                const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+                let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+                const withTutorial = urlParams.get('tutorial') === 'true';
+
+                gameSaves[slotId] = { day: 1, money: 50, tutorial: withTutorial }; 
+                localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+            }
+
+            setTimeout(() => {
+                window.location.href = `game.html?slot=${slotId}`;
+            }, 2000);
+        }
+
+        function advanceLore() {
+            loreIndex++;
+            if (loreIndex < lore.length) {
+                loreTextElement.style.animation = 'none';
+                void loreTextElement.offsetWidth;
+                loreTextElement.style.animation = 'fade-in 1s forwards';
+                loreTextElement.textContent = lore[loreIndex];
+            } else {
+                startGame();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedSettings = localStorage.getItem('protocoloAccesoSettings');
+            const settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es' };
             
-            console.log(`Nueva partida creada en ranura ${slotId + 1} ${withTutorial ? 'CON' : 'SIN'} tutorial.`);
-        } else {
-            console.log(`Cargando partida desde la ranura ${slotId + 1}...`);
-        }
+            document.body.classList.add(`theme-${settings.theme}`);
+            if (settings.crt) document.body.classList.add('crt-effect');
+            
+            lore = settings.lang === 'en' ? lore_en : lore_es;
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            slotId = parseInt(urlParams.get('slot'), 10);
 
-        // Aquí es donde redirigirías a tu página de juego principal (ej: game.html)
-        setTimeout(() => {
-            alert("¡Lore terminado! Redirigiendo al juego... (Crea un 'game.html' para continuar la experiencia)");
-            // window.location.href = `game.html?slot=${slotId}`; // Descomenta esta línea cuando tengas tu página de juego
-        }, 2000);
-    }
+            if (isNaN(slotId)) {
+                window.location.href = 'index.html';
+                return;
+            }
 
-    // --- FUNCIÓN PARA AVANZAR EN EL LORE ---
-    function advanceLore() {
-        loreIndex++;
-        if (loreIndex < lore.length) {
-            loreTextElement.style.animation = 'none';
-            void loreTextElement.offsetWidth; // Trigger reflow
-            loreTextElement.style.animation = 'fade-in 1s forwards';
-            loreTextElement.textContent = lore[loreIndex];
-        } else {
-            startGame();
-        }
-    }
-
-    // --- INICIALIZACIÓN ---
-    document.addEventListener('DOMContentLoaded', () => {
-        // Cargar configuración para saber el tema y el idioma
-        const savedSettings = localStorage.getItem('protocoloAccesoSettings');
-        const settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es' };
-        
-        document.body.classList.add(`theme-${settings.theme}`);
-        if (settings.crt) document.body.classList.add('crt-effect');
-        
-        lore = settings.lang === 'en' ? lore_en : lore_es;
-        
-        // Obtener datos de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        slotId = parseInt(urlParams.get('slot'), 10);
-        withTutorial = urlParams.get('tutorial') === 'true';
-
-        if (isNaN(slotId)) {
-            // Si no hay ranura, volver al menú principal
-            window.location.href = 'index.html';
-            return;
-        }
-
-        loreTextElement.textContent = lore[0];
-        document.addEventListener('click', advanceLore);
-    });
-
-                </script>
+            loreTextElement.textContent = lore[0];
+            document.addEventListener('click', advanceLore);
+        });
+    </script>
 </body>
 </html>
