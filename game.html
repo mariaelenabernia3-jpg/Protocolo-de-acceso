@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">2
+    <title>Protocolo de Acceso - Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #a8ffbe; --background-color: #0d1a14;
+            --glow-color: rgba(168, 255, 190, 0.5); --border-color: rgba(168, 255, 190, 0.4);
+            --approve-color: #a8ffbe; --approve-glow: rgba(168, 255, 190, 0.7);
+            --deny-color: #ff6e6e; --deny-glow: rgba(255, 110, 110, 0.7);
+            --hack-color: #ffc254; --hack-glow: rgba(255, 194, 84, 0.7);
+            --sect-color: #d4a5ff; --sect-glow: rgba(212, 165, 255, 0.5);
+        }
+        body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; background-color: var(--background-color); color: var(--primary-color); font-family: 'VT323', monospace; }
+        body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); --border-color: rgba(255, 194, 84, 0.4); --approve-color: #ffc254; --approve-glow: rgba(255, 194, 84, 0.7); }
+        body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); --border-color: rgba(130, 234, 255, 0.4); --approve-color: #82eaff; --approve-glow: rgba(130, 234, 255, 0.7); }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        #vignette { box-shadow: inset 0 0 25vmin rgba(0,0,0,0.8); }
+        .crt-effect::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; z-index: 11; pointer-events: none; animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.21; } 5% { opacity: 0.34; } 10% { opacity: 0.23; } 15% { opacity: 0.45; } 20% { opacity: 0.31; } 25% { opacity: 0.5; } 30% { opacity: 0.24; } 35% { opacity: 0.41; } 40% { opacity: 0.28; } 45% { opacity: 0.33; } 50% { opacity: 0.48; } 55% { opacity: 0.29; } 60% { opacity: 0.42; } 65% { opacity: 0.3; } 70% { opacity: 0.5; } 75% { opacity: 0.35; } 80% { opacity: 0.4; } 85% { opacity: 0.22; } 90% { opacity: 0.39; } 95% { opacity: 0.47; } 100% { opacity: 0.31; } }
+
+        .game-container { display: flex; height: 100vh; padding: 15px; box-sizing: border-box; gap: 15px; padding-bottom: 100px; animation: fade-in-game 1s ease-out; }
+        .applicant-pane, .info-pane { border: 1px solid var(--border-color); padding: 20px; overflow-y: auto; background: rgba(0,0,0,0.2); }
+        .applicant-pane { flex: 2; }
+        .info-pane { flex: 1; display: flex; flex-direction: column; gap: 20px;}
+        
+        .info-box { border-bottom: 1px dashed var(--border-color); padding-bottom: 15px; }
+        .info-box h2 { font-family: 'Special Elite', cursive; margin: 0 0 10px 0; font-size: 2rem; text-shadow: 0 0 5px var(--glow-color); }
+        .info-box ul { list-style-type: '> '; padding-left: 20px; margin: 0; font-size: 1.5rem; }
+        #stats-box span { display: block; margin-bottom: 5px; font-size: 1.8rem; }
+        #timer-bar-container { width: 100%; height: 20px; border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.3); }
+        #timer-bar { height: 100%; width: 100%; background-color: var(--primary-color); transition: width 0.5s linear, background-color 0.3s; }
+        #timer-bar.low-time { background-color: var(--deny-color); animation: pulse-warning 1s infinite; }
+        #comms-log { font-size: 1.3rem; max-height: 200px; overflow-y: auto; }
+        #comms-log p { margin: 0 0 5px 0; opacity: 0.8; }
+        #comms-log p:first-child { opacity: 1; font-weight: bold; }
+        .sect-message { color: var(--sect-color); text-shadow: 0 0 5px var(--sect-glow); animation: pulse-sect-message 2s infinite; }
+
+        .applicant-pane h1 { font-family: 'Special Elite', cursive; margin: 0 0 20px 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        .applicant-field { font-size: 1.8rem; margin-bottom: 15px; opacity: 0; animation: fade-in-field 0.5s forwards; }
+        .applicant-field strong { text-transform: uppercase; color: var(--primary-color); opacity: 0.8; }
+        #applicant-name { text-shadow: 0 0 5px var(--glow-color); }
+        #financial-info { border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px; }
+        #hack-btn { font-family: 'VT323', monospace; font-size: 1.5rem; background: transparent; color: var(--hack-color); border: 1px solid var(--hack-color); padding: 5px 15px; cursor: pointer; margin-left: 15px; }
+        #hack-btn:hover { background: var(--hack-color); color: var(--background-color); box-shadow: 0 0 10px var(--hack-glow); }
+        #hack-btn:disabled { color: grey; border-color: grey; cursor: not-allowed; background: transparent; box-shadow: none; opacity: 0.5; }
+        
+        .decision-bar { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; z-index: 5; height: 95px; }
+        .decision-button { flex: 1; font-family: 'VT323', monospace; font-size: 4rem; padding: 20px 0; border: none; cursor: pointer; text-transform: uppercase; border-top: 2px solid; transition: background-color 0.2s, text-shadow 0.2s, transform 0.1s; }
+        .decision-button:active { transform: scale(0.98); }
+        #approve-btn { color: var(--approve-color); border-color: var(--approve-color); background-color: rgba(168, 255, 190, 0.1); }
+        #approve-btn:hover { background-color: rgba(168, 255, 190, 0.3); text-shadow: 0 0 10px var(--approve-glow); }
+        #deny-btn { color: var(--deny-color); border-color: var(--deny-color); background-color: rgba(255, 110, 110, 0.1); }
+        #deny-btn:hover { background-color: rgba(255, 110, 110, 0.3); text-shadow: 0 0 10px var(--deny-glow); }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 20; display: none; justify-content: center; align-items: center; text-align: center; }
+        #feedback-overlay { font-family: 'Special Elite', cursive; font-size: 6rem; text-transform: uppercase; animation: fade-in-out 3.5s forwards; }
+        #feedback-overlay.correct { color: var(--approve-color); text-shadow: 0 0 25px var(--approve-glow); }
+        #feedback-overlay.incorrect { color: var(--deny-color); text-shadow: 0 0 25px var(--deny-glow); }
+
+        #hack-minigame { flex-direction: column; gap: 20px; }
+        #hack-minigame h2 { font-family: 'Special Elite', cursive; font-size: 3rem; color: var(--hack-color); text-shadow: 0 0 10px var(--hack-glow); margin: 0; }
+        #hack-sequence { font-size: 4rem; letter-spacing: 10px; background: #000; padding: 10px 20px; border: 1px solid var(--hack-color); }
+        #hack-input { font-family: 'VT323', monospace; width: 500px; font-size: 4rem; letter-spacing: 10px; text-align: center; color: var(--primary-color); background: transparent; border: 1px solid var(--border-color); }
+        #hack-timer { width: 540px; height: 10px; background-color: var(--hack-color); transition: width 0.1s linear; }
+        
+        .modal-box { display: flex; flex-direction: column; background-color: var(--background-color); border: 1px solid var(--border-color); padding: 30px; width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; }
+        .modal-box h2 { font-family: 'Special Elite', cursive; font-size: 3rem; text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin: 0 0 20px 0; }
+        
+        #daily-briefing-news { text-align: left; font-size: 1.5rem; list-style-type: '> '; padding-left: 20px; }
+        #daily-briefing-news li { margin-bottom: 15px; }
+        
+        .action-button { font-family: 'VT323', monospace; font-size: 2rem; background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 10px 40px; cursor: pointer; margin-top: 20px; text-transform: uppercase; }
+        .action-button:hover:not(:disabled) { background-color: var(--primary-color); color: var(--background-color); }
+
+        #end-of-day-section h3 { font-family: 'Special Elite', cursive; font-size: 2.5rem; }
+        #bills-list { list-style: none; padding: 0; font-size: 1.8rem; }
+        #bills-list li { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        #shop-items { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .shop-item { font-size: 1.5rem !important; text-align: left; padding: 15px !important; }
+        .shop-item:disabled { color: grey; border-color: grey; cursor: not-allowed; opacity: 0.6; }
+        .shop-item .cost { float: right; }
+
+        #tutorial-overlay { background: rgba(0,0,0,0.8); z-index: 99; pointer-events: all; }
+        #tutorial-highlighter { position: fixed; border: 3px dashed var(--hack-color); box-shadow: 0 0 15px var(--hack-glow); transition: all 0.5s ease-in-out; pointer-events: none; border-radius: 5px; }
+        #tutorial-box { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--background-color); border: 1px solid var(--border-color); padding: 20px; width: 70%; max-width: 600px; }
+        #tutorial-text { font-size: 1.5rem; margin: 0 0 15px 0; }
+        #tutorial-next-btn { float: right; }
+
+        /* ESTILOS PARA LA SECUENCIA DE ARRANQUE */
+        #boot-overlay { z-index: 100; flex-direction: column; background-color: #000; }
+        #boot-text-container { width: 90%; max-width: 800px; height: 60vh; font-size: 1.2rem; overflow: hidden; border: 1px solid var(--border-color); padding: 10px; box-sizing: border-box; }
+        #boot-text { list-style: none; padding: 0; margin: 0; }
+        #password-minigame-container { display: none; flex-direction: column; align-items: center; gap: 15px; margin-top: 20px; }
+        #password-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; font-size: 1.8rem; }
+        #password-grid span { width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; }
+        .password-char { color: var(--hack-color); text-shadow: 0 0 8px var(--hack-glow); animation: pulse-warning 1s infinite; }
+        #password-input { font-family: 'VT323', monospace; font-size: 2rem; color: var(--primary-color); background: transparent; border: 1px solid var(--border-color); text-align: center; text-transform: uppercase; }
+        #password-error { color: var(--deny-color); display: none; }
+        
+        #lore-overlay .modal-box { max-width: 600px; }
+        #lore-text { font-size: 1.8rem; text-align: left; }
+
+        @keyframes fade-in-game { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fade-in-field { from { opacity: 0; transform: translateX(-15px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fade-in-out { 0% { opacity: 0; transform: scale(0.8); } 15% { opacity: 1; transform: scale(1); } 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
+        @keyframes pulse-warning { 50% { filter: brightness(1.5); } }
+        @keyframes pulse-sect-message { 50% { filter: brightness(1.8); text-shadow: 0 0 10px var(--sect-glow);} }
+
+        @media (max-width: 768px) {
+            body, html { overflow: auto; }
+            .game-container { flex-direction: column; height: auto; padding: 10px; padding-bottom: 90px; }
+            .applicant-pane, .info-pane { flex: none; width: auto; }
+            .info-box h2 { font-size: 1.5rem; } .info-box ul { font-size: 1.1rem; }
+            #stats-box span { font-size: 1.3rem; } .applicant-pane h1 { font-size: 1.8rem; }
+            .applicant-field { font-size: 1.3rem; }
+            #hack-btn { font-size: 1.2rem; padding: 4px 10px; }
+            .decision-button { font-size: 2.8rem; } .decision-bar { height: 85px; }
+            #feedback-overlay { font-size: 3rem; }
+            #hack-minigame h2 { font-size: 1.8rem; }
+            #hack-sequence { font-size: 1.5rem; max-width: 90vw; word-break: break-all; }
+            #hack-input { font-size: 1.5rem; width: 80vw; }
+            #hack-timer-container { width: calc(80vw + 10px); }
+            .modal-box { width: 90%; }
+            .modal-box h2 { font-size: 2rem; }
+            #daily-briefing-news, .shop-item, #bills-list { font-size: 1.2rem !important; }
+            #tutorial-box { width: 90%; bottom: 80px; }
+            #tutorial-text { font-size: 1.2rem; }
+            #password-grid { font-size: 1.2rem; gap: 2px;}
+            #password-grid span { width: 20px; height: 20px; }
+            #boot-text-container { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="vignette" class="overlay"></div>
+    
+    <div id="feedback-overlay-container" class="modal-overlay">
+        <div id="feedback-overlay"></div>
+    </div>
+    
+    <div id="hack-minigame" class="modal-overlay">
+        <h2>INTRUSIÓN DE SISTEMA</h2>
+        <p>REPLIQUE LA SECUENCIA ANTES DEL BLOQUEO:</p>
+        <div id="hack-sequence"></div>
+        <input type="text" id="hack-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+        <div id="hack-timer-container" style="border: 1px solid var(--hack-color); padding: 2px;"><div id="hack-timer"></div></div>
+    </div>
+
+    <div id="daily-briefing-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2 id="briefing-title"></h2>
+            <ul id="daily-briefing-news"></ul>
+            <button id="start-day-btn" class="action-button">INICIAR JORNADA</button>
+        </div>
+    </div>
+
+    <div id="end-of-day-overlay" class="modal-overlay">
+        <div class="modal-box" id="end-of-day-section">
+            <h2 id="eod-title">FIN DE LA JORNADA</h2>
+            <div id="bills-section">
+                <h3>Gastos de Subsistencia</h3>
+                <ul id="bills-list"></ul>
+                <hr>
+                <p id="bills-total" style="font-size: 1.8rem;"></p>
+                <button id="pay-bills-btn" class="action-button">PAGAR GASTOS</button>
+            </div>
+            <div id="shop-section" style="display: none;">
+                <h3>Mercado Negro (Mejoras)</h3>
+                <p id="shop-money-display"></p>
+                <div id="shop-items"></div>
+                <button id="show-lore-btn" class="action-button">FINALIZAR TURNO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tutorial-overlay" class="modal-overlay" style="display: none;">
+        <div id="tutorial-highlighter"></div>
+        <div id="tutorial-box">
+            <p id="tutorial-text"></p>
+            <button id="tutorial-next-btn" class="action-button">SIGUIENTE ></button>
+        </div>
+    </div>
+
+    <!-- NUEVA SUPERPOSICIÓN DE ARRANQUE -->
+    <div id="boot-overlay" class="modal-overlay" style="display: none;">
+        <div id="boot-text-container">
+            <ul id="boot-text"></ul>
+        </div>
+        <div id="password-minigame-container">
+            <h3>DESCIFRAR CONTRASEÑA DE ACCESO DIARIO</h3>
+            <div id="password-grid"></div>
+            <p>INGRESE LA CONTRASEÑA:</p>
+            <input type="text" id="password-input" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <p id="password-error">ACCESO DENEGADO</p>
+        </div>
+    </div>
+
+    <!-- NUEVA SUPERPOSICIÓN DE LORE -->
+    <div id="lore-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-box">
+            <h2>REGISTRO PERSONAL</h2>
+            <p id="lore-text"></p>
+            <button id="next-day-btn" class="action-button">PROCEDER AL DÍA SIGUIENTE</button>
+        </div>
+    </div>
+
+    <div class="game-container" style="visibility: hidden;">
+        <div class="applicant-pane">
+            <h1>Solicitud de Acceso</h1>
+            <div id="applicant-data-container">
+                <div class="applicant-field"><strong>Nombre:</strong> <span id="applicant-name"></span></div>
+                <div class="applicant-field" style="animation-delay: 0.1s;"><strong>País de Origen:</strong> <span id="applicant-country"></span></div>
+                <div class="applicant-field" style="animation-delay: 0.2s;"><strong>ID de Conexión:</strong> <span id="applicant-id"></span></div>
+                <div class="applicant-field" style="animation-delay: 0.3s;"><strong>Motivo de Conexión:</strong> <span id="applicant-reason"></span></div>
+                <div id="financial-info" class="applicant-field" style="animation-delay: 0.4s;">
+                    <strong>Datos Financieros:</strong> 
+                    <span>Saldo: <span id="applicant-balance"></span> Créditos</span>
+                    <button id="hack-btn">[ INICIAR HACKEO ]</button>
+                </div>
+            </div>
+        </div>
+        <div class="info-pane">
+            <div id="stats-box" class="info-box">
+                <span id="day-counter">DÍA: 1</span>
+                <span id="money-counter">CRÉDITOS: 0</span>
+                <span id="applicant-counter">SOLICITUD: 1 / 5</span>
+            </div>
+            <div id="rules-box" class="info-box">
+                <h2>Directivas del Día</h2>
+                <ul id="rules-list"></ul>
+            </div>
+            <div id="comms-box" class="info-box">
+                <h2>Registro de Comunicaciones</h2>
+                <div id="comms-log"><p>> Esperando conexión...</p></div>
+            </div>
+            <div id="timer-box" class="info-box">
+                <h2>Tiempo Restante</h2>
+                <div id="timer-bar-container"><div id="timer-bar"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="decision-bar" style="visibility: hidden;">
+        <button id="approve-btn">Aprobar</button>
+        <button id="deny-btn">Denegar</button>
+    </div>
+
+    <script src="script-game.js"></script>
+</body>
+</html>
