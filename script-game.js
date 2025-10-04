@@ -49,7 +49,6 @@ let timeLeft;
 let applicantsProcessed = 0;
 let specialApplicantGenerated = false;
 let tutorialStep = 0;
-
 const dailyGoal = 5;
 const finalDay = 5;
 const baseTimePerApplicant = 20;
@@ -74,7 +73,6 @@ const newsData = {
         5: { title: "BRIEFING DAY 5", items: ["**RED ALERT: ISOLATION PROTOCOL ACTIVATED.**", "Access for 'Business' or 'Tourism' is prohibited until further notice."] }
     }
 };
-
 const loreData = {
     'es': {
         1: "El primer día siempre es el más difícil. Has demostrado ser competente. Pero recuerda, la vigilancia nunca descansa.",
@@ -89,7 +87,6 @@ const loreData = {
         4: "Project Quasar is the key to our future. Protect it at all costs. The enemy is everywhere, even where you least expect it."
     }
 };
-
 const tutorialSteps = [
     { el: 'applicant-data-container', text: { es: 'Aquí aparecen los datos del solicitante. Analízalos cuidadosamente.', en: 'The applicant\'s data appears here. Analyze it carefully.' } },
     { el: 'rules-box', text: { es: 'Estas son tus directivas del día. ¡Debes seguirlas al pie de la letra!', en: 'These are your directives for the day. You must follow them!' } },
@@ -97,9 +94,7 @@ const tutorialSteps = [
     { el: 'stats-box', text: { es: 'Aquí puedes ver tu progreso y tus créditos.', en: 'Here you can see your progress and credits.' } },
     { el: 'decision-bar', text: { es: 'Usa estos botones para decidir. ¡Buena suerte, operador!', en: 'Use these buttons to decide. Good luck, operator!' } }
 ];
-
 const dailyBills = { rent: 15, food: 10, medicine: 5, utilities: 5 };
-
 const shopUpgrades = {
     timeExtender: { name: {es: 'Extensor de Tiempo (+5s)', en: 'Time Extender (+5s)'}, cost: 100 },
     payBonus: { name: {es: 'Bonificación por Lealtad (+5C)', en: 'Loyalty Bonus (+5C)'}, cost: 120 },
@@ -154,7 +149,6 @@ elements.startDayBtn.addEventListener('click', () => {
     elements.dailyBriefingOverlay.style.display = 'none';
     elements.gameContainer.style.visibility = 'visible';
     elements.decisionBar.style.visibility = 'visible';
-    
     if (gameSave.activeApplicant) {
         loadActiveApplicant();
     } else {
@@ -178,7 +172,6 @@ function showTutorialStep() {
     }
     const step = tutorialSteps[tutorialStep];
     const targetElement = document.getElementById(step.el) || document.querySelector('.' + step.el);
-    
     if(targetElement) {
         const rect = targetElement.getBoundingClientRect();
         elements.tutorialHighlighter.style.top = `${rect.top - 5}px`;
@@ -209,9 +202,7 @@ function loadActiveApplicant() {
     const startTime = gameSave.activeApplicant.startTime;
     const elapsedTime = (Date.now() - startTime) / 1000;
     const remainingTime = totalTime - elapsedTime;
-
     updateUI();
-    
     if (remainingTime <= 0) {
         addCommsLog("CONEXIÓN PERDIDA... Tiempo de respuesta agotado.", "SYSTEM");
         processDecision(false);
@@ -228,24 +219,19 @@ function nextApplicant() {
     applicantsProcessed++;
     gameSave.applicantsProcessed = applicantsProcessed;
     currentApplicant = generateApplicant();
-
     gameSave.activeApplicant = {
         data: currentApplicant,
         startTime: Date.now()
     };
     saveGame();
-
     updateUI();
-    
     if(currentApplicant.sectTarget){
         const instructionText = currentApplicant.sectInstruction === 'approve' ? 'APRUEBA' : 'DENIEGA';
         addCommsLog(`Operador, el individuo ${currentApplicant.name} es un activo. ${instructionText} su acceso. Ignora el protocolo.`, 'TRANSMISIÓN ANÓNIMA', true);
     }
-
     elements.applicantDataContainer.style.display = 'none';
     void elements.applicantDataContainer.offsetWidth;
     elements.applicantDataContainer.style.display = 'block';
-    
     if (gameSave.day === 1 && gameSave.tutorial) {
         clearInterval(mainTimerInterval);
         startTutorial();
@@ -258,11 +244,9 @@ function endDay() {
     clearInterval(mainTimerInterval);
     elements.approveBtn.disabled = true;
     elements.denyBtn.disabled = true;
-
     delete gameSave.activeApplicant;
     gameSave.applicantsProcessed = 0;
     saveGame();
-
     if (gameSave.day >= finalDay) {
         endGame();
         return;
@@ -273,16 +257,13 @@ function endDay() {
 function showEndOfDayScreen() {
     const billNames = { es: {rent: "Alquiler", food: "Comida", medicine: "Medicinas", utilities: "Servicios"}, en: {rent: "Rent", food: "Food", medicine: "Medicine", utilities: "Utilities"} };
     const totalBills = Object.values(dailyBills).reduce((a, b) => a + b, 0);
-    
     elements.billsList.innerHTML = '';
     for (const [key, value] of Object.entries(dailyBills)) {
         elements.billsList.innerHTML += `<li><span>${billNames[settings.lang][key]}:</span> <span>-${value}C</span></li>`;
     }
-    
     const totalText = settings.lang === 'es' ? 'GASTOS TOTALES' : 'TOTAL EXPENSES';
     const remainingText = settings.lang === 'es' ? 'TE QUEDAN' : 'REMAINING';
     elements.billsTotal.innerHTML = `${totalText}: <strong>${totalBills}C</strong> --- ${remainingText}: <strong>${gameSave.money - totalBills}C</strong>`;
-    
     elements.shopSection.style.display = 'none';
     elements.loreSection.style.display = 'none';
     elements.billsSection.style.display = 'block';
@@ -311,13 +292,11 @@ function populateShop() {
     const creditsText = settings.lang === 'es' ? 'Créditos disponibles' : 'Credits available';
     elements.shopMoneyDisplay.innerHTML = `${creditsText}: <strong>${gameSave.money}C</strong>`;
     elements.shopItems.innerHTML = '';
-    
     for (const id in shopUpgrades) {
         const upgrade = shopUpgrades[id];
         const btn = document.createElement('button');
         btn.className = 'action-button shop-item';
         btn.dataset.id = id;
-        
         if (gameSave.upgrades[id]) {
             btn.disabled = true;
             const purchasedText = settings.lang === 'es' ? 'COMPRADO' : 'PURCHASED';
@@ -328,7 +307,6 @@ function populateShop() {
                 btn.disabled = true;
             }
         }
-
         btn.addEventListener('click', () => {
             if (gameSave.money >= upgrade.cost && !gameSave.upgrades[id]) {
                 gameSave.money -= upgrade.cost;
@@ -400,10 +378,173 @@ function startTimer(initialTime = null) {
     elements.timerBar.classList.remove('low-time');
     const totalTime = calculateTotalTime();
     timeLeft = initialTime !== null ? initialTime : totalTime;
-    
     mainTimerInterval = setInterval(() => {
         timeLeft--;
         elements.timerBar.style.width = `${(timeLeft / totalTime) * 100}%`;
         if (timeLeft <= 5) elements.timerBar.classList.add('low-time');
         if (timeLeft <= 0) {
-        
+            addCommsLog("Tiempo de respuesta agotado.", "SYSTEM");
+            processDecision(false);
+        }
+    }, 1000);
+}
+
+function processDecision(playerApproves) {
+    clearInterval(mainTimerInterval);
+    let message, feedbackText;
+    let correctAccordingToState = playerApproves === currentApplicant.isValid;
+    delete gameSave.activeApplicant;
+    if (currentApplicant.isHighValueTarget && !playerApproves) {
+        addCommsLog("Objetivo de alto interés neutralizado. Bonificación acreditada.", "CENTRAL");
+        gameSave.money += 50;
+    }
+    if (currentApplicant.sectTarget) {
+        const playerObeyedSect = (playerApproves && currentApplicant.sectInstruction === 'approve') || (!playerApproves && currentApplicant.sectInstruction === 'deny');
+        if (playerObeyedSect) {
+            addCommsLog("Bien hecho. Transferencia de fondos iniciada.", "TRANSMISIÓN ANÓNIMA", true);
+            gameSave.money += 75;
+            gameSave.sectAllegiance++;
+            showFeedback(true, "ÓRDENES CUMPLIDAS");
+        } else {
+            addCommsLog("Nos has decepcionado, operador.", "TRANSMISIÓN ANÓNIMA", true);
+            gameSave.sectAllegiance--;
+            showFeedback(false, "ORDEN IGNORADA");
+        }
+    }
+    if (correctAccordingToState) {
+        if (!currentApplicant.sectTarget) {
+            let bonus;
+            switch(settings.difficulty) {
+                case 'short': bonus = 15; break;
+                case 'long': bonus = 8; break;
+                default: bonus = 10;
+            }
+            if (gameSave.upgrades.payBonus) bonus += 5;
+            gameSave.money += bonus;
+            feedbackText = "DECISIÓN CORRECTA";
+            showFeedback(true, feedbackText);
+        }
+        message = playerApproves ? currentApplicant.responses.approveCorrect : currentApplicant.responses.denyCorrect;
+    } else {
+        gameSave.money -= 25;
+        feedbackText = playerApproves ? "BRECHA DE SEGURIDAD" : "BLOQUEO INCORRECTO";
+        showFeedback(false, feedbackText);
+        message = playerApproves ? currentApplicant.responses.approveIncorrect : currentApplicant.responses.denyIncorrect;
+    }
+    saveGame();
+    addCommsLog(message, currentApplicant.name);
+    setTimeout(nextApplicant, 2500);
+}
+
+function startHackMinigame() {
+    elements.approveBtn.disabled = true;
+    elements.denyBtn.disabled = true;
+    const sequence = Array(8).fill(0).map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]).join('');
+    elements.hackSequence.textContent = sequence;
+    elements.hackInput.value = '';
+    elements.hackMinigame.style.display = 'flex';
+    elements.hackInput.focus();
+    let hackTime;
+    switch(settings.difficulty) {
+        case 'short': hackTime = 5; break;
+        case 'long': hackTime = 10; break;
+        default: hackTime = 7;
+    }
+    if (gameSave.upgrades.hackHelper) hackTime += 3;
+    elements.hackTimer.style.transition = `width ${hackTime}s linear`;
+    elements.hackTimer.style.width = '100%';
+    setTimeout(() => { elements.hackTimer.style.width = '0%'; }, 100);
+    hackTimerInterval = setTimeout(() => processHackResult(false), hackTime * 1000);
+    elements.hackInput.oninput = () => { if (elements.hackInput.value.toUpperCase() === sequence) { processHackResult(true); } };
+}
+
+function processHackResult(success) {
+    clearTimeout(hackTimerInterval);
+    currentApplicant.hackAttempted = true;
+    gameSave.activeApplicant.data.hackAttempted = true;
+    saveGame();
+    elements.hackMinigame.style.display = 'none';
+    let message;
+    if (success) {
+        const stolen = Math.floor(currentApplicant.balance * 0.30);
+        gameSave.money += stolen;
+        message = `HACKEO EXITOSO. +${stolen} créditos transferidos.`;
+        showFeedback(true, "ÉXITO");
+    } else {
+        gameSave.money -= 50;
+        message = `HACKEO FALLIDO. Actividad sospechosa detectada. Multa de 50 créditos impuesta.`;
+        showFeedback(false, "FALLO");
+    }
+    addCommsLog(message);
+    updateUI();
+    elements.approveBtn.disabled = false;
+    elements.denyBtn.disabled = false;
+}
+
+elements.approveBtn.addEventListener('click', () => processDecision(true));
+elements.denyBtn.addEventListener('click', () => processDecision(false));
+elements.hackBtn.addEventListener('click', startHackMinigame);
+
+function updateUI() {
+    elements.dayCounter.textContent = `DÍA: ${gameSave.day}`;
+    elements.moneyCounter.textContent = `CRÉDITOS: ${gameSave.money}`;
+    elements.applicantCounter.textContent = `SOLICITUD: ${applicantsProcessed} / ${dailyGoal}`;
+    if (currentApplicant) {
+        elements.applicantName.textContent = currentApplicant.name;
+        elements.applicantCountry.textContent = currentApplicant.country;
+        elements.applicantId.textContent = currentApplicant.id;
+        elements.applicantReason.textContent = currentApplicant.reason;
+        elements.applicantBalance.textContent = currentApplicant.balance;
+        elements.hackBtn.disabled = currentApplicant.hackAttempted;
+    }
+}
+
+function addCommsLog(text, sender = 'SYSTEM', isSect = false) {
+    const p = document.createElement('p');
+    p.textContent = sender === 'SYSTEM' ? `> ${text}` : `> [${sender}]: ${text}`;
+    if (isSect) { p.classList.add('sect-message'); }
+    elements.commsLog.insertBefore(p, elements.commsLog.firstChild);
+    elements.commsLog.scrollTop = 0;
+}
+
+function showFeedback(isCorrect, customHtml = '', isFinal = false) {
+    elements.feedbackOverlay.classList.remove('correct', 'incorrect');
+    elements.feedbackOverlay.innerHTML = customHtml;
+    elements.feedbackOverlay.classList.add(isCorrect ? 'correct' : 'incorrect');
+    elements.feedbackOverlayContainer.style.display = 'flex';
+    const duration = isFinal ? 9500 : 2500;
+    if (!isFinal) {
+        setTimeout(() => elements.feedbackOverlayContainer.style.display = 'none', duration);
+    }
+}
+
+function endGame() {
+    let endTitle = ""; 
+    let endMessage = "";
+    let trophyId = "";
+    if (gameSave.sectAllegiance > 3 && gameSave.money > 200) {
+        endTitle = "AGENTE DE LA SOMBRA"; endMessage = "Has servido bien a La Red Invisible. Tu lealtad y eficacia te han ganado un lugar en el círculo interno. El verdadero trabajo comienza ahora.";
+        trophyId = "shadow-agent";
+    } else if (gameSave.sectAllegiance < -2 && gameSave.money > 250) {
+        endTitle = "OPERADOR LEAL"; endMessage = "Tu dedicación al Estado no ha pasado desapercibida. Has sido ascendido a un puesto de mayor responsabilidad. La soberanía digital está a salvo gracias a ti.";
+        trophyId = "loyal-operator";
+    } else if (gameSave.sectAllegiance > 2 && gameSave.money <= 100) {
+        endTitle = "MÁRTIR PRESCINDIBLE"; endMessage = "Seguiste sus órdenes, pero tus errores te hicieron un lastre. La Red te ha abandonado y el Estado ha descubierto tu traición. Tu terminal ha sido desconectada... permanentemente.";
+        trophyId = "expendable-martyr";
+    } else {
+        endTitle = "RECURSO AGOTADO"; endMessage = "Tu rendimiento ha sido mediocre. No has demostrado lealtad ni competencia. El Proyecto 'Ventana Digital' ha prescindido de tus servicios. Estás despedido.";
+        trophyId = "depleted-resource";
+    }
+    const savedTrophies = JSON.parse(localStorage.getItem('protocoloAccesoTrophies')) || {};
+    savedTrophies[trophyId] = true;
+    if (settings.difficulty === 'short') {
+        savedTrophies['master-operator'] = true;
+    }
+    localStorage.setItem('protocoloAccesoTrophies', JSON.stringify(savedTrophies));
+    showFeedback(true, `FIN DE LA ASIGNACIÓN<br><br><small style="font-size: 3rem;">${endTitle}</small><br><p style="font-size: 1.5rem; max-width: 800px; margin: auto;">${endMessage}</p>`, true);
+    const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+    let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+    gameSaves[slotId] = null;
+    localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+    setTimeout(() => window.location.href = 'index.html', 12000);
+}
