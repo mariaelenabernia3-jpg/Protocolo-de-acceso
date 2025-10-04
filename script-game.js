@@ -34,6 +34,9 @@ const elements = {
     payBillsBtn: document.getElementById('pay-bills-btn'),
     shopItems: document.getElementById('shop-items'),
     shopMoneyDisplay: document.getElementById('shop-money-display'),
+    showLoreBtn: document.getElementById('show-lore-btn'),
+    loreSection: document.getElementById('lore-section'),
+    loreRevealText: document.getElementById('lore-reveal-text'),
     nextDayBtn: document.getElementById('next-day-btn'),
     tutorialOverlay: document.getElementById('tutorial-overlay'),
     tutorialHighlighter: document.getElementById('tutorial-highlighter'),
@@ -69,6 +72,21 @@ const newsData = {
         3: { title: "BRIEFING DAY 3", items: ["Diplomatic tensions with the U.S. at an all-time high.", "**HIGH ALERT**: Wanted: Javier Rodriguez, a U.S. disinformation agent."] },
         4: { title: "BRIEFING DAY 4", items: ["Announcement of 'Project Quasar', a national scientific initiative.", "Any request not for 'Academic Research' must be blocked."] },
         5: { title: "BRIEFING DAY 5", items: ["**RED ALERT: ISOLATION PROTOCOL ACTIVATED.**", "Access for 'Business' or 'Tourism' is prohibited until further notice."] }
+    }
+};
+
+const loreData = {
+    'es': {
+        1: "El primer día siempre es el más difícil. Has demostrado ser competente. Pero recuerda, la vigilancia nunca descansa.",
+        2: "Las redes de inteligencia extranjeras aumentan su actividad. Tus decisiones son más cruciales que nunca. El Estado confía en ti.",
+        3: "Hemos interceptado comunicaciones que hablan de 'La Red Invisible'. Permanece alerta a cualquier anomalía. Reporta todo lo sospechoso.",
+        4: "El Proyecto Quásar es la clave de nuestro futuro. Protégelo a toda costa. El enemigo está en todas partes, incluso donde no lo esperas."
+    },
+    'en': {
+        1: "The first day is always the hardest. You have proven to be competent. But remember, vigilance never rests.",
+        2: "Foreign intelligence networks are increasing their activity. Your decisions are more crucial than ever. The State trusts you.",
+        3: "We have intercepted communications speaking of 'The Invisible Network'. Remain alert to any anomaly. Report everything suspicious.",
+        4: "Project Quasar is the key to our future. Protect it at all costs. The enemy is everywhere, even where you least expect it."
     }
 };
 
@@ -266,6 +284,7 @@ function showEndOfDayScreen() {
     elements.billsTotal.innerHTML = `${totalText}: <strong>${totalBills}C</strong> --- ${remainingText}: <strong>${gameSave.money - totalBills}C</strong>`;
     
     elements.shopSection.style.display = 'none';
+    elements.loreSection.style.display = 'none';
     elements.billsSection.style.display = 'block';
     elements.endOfDayOverlay.style.display = 'flex';
 }
@@ -321,6 +340,12 @@ function populateShop() {
         elements.shopItems.appendChild(btn);
     }
 }
+
+elements.showLoreBtn.addEventListener('click', () => {
+    elements.shopSection.style.display = 'none';
+    elements.loreSection.style.display = 'block';
+    elements.loreRevealText.textContent = loreData[settings.lang][gameSave.day] || "";
+});
 
 elements.nextDayBtn.addEventListener('click', () => {
     gameSave.day++;
