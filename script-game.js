@@ -406,4 +406,4 @@ function startTimer(initialTime = null) {
         elements.timerBar.style.width = `${(timeLeft / totalTime) * 100}%`;
         if (timeLeft <= 5) elements.timerBar.classList.add('low-time');
         if (timeLeft <= 0) {
-            
+        
