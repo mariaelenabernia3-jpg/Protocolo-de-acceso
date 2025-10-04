@@ -38,6 +38,11 @@
             opacity: 0;
             animation: fade-in 1s forwards;
         }
+        .day-start-title {
+            font-family: 'Special Elite', cursive;
+            font-size: 5rem !important;
+            animation: pulse-glow 2s infinite ease-in-out, fade-in 1s forwards !important;
+        }
         #continue-prompt {
             position: absolute; bottom: 40px; font-size: 1.5rem; opacity: 0.6;
             animation: blink 1.5s step-end infinite;
@@ -45,9 +50,15 @@
 
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes blink { 50% { opacity: 0; } }
+        @keyframes pulse-glow { 
+            0% { text-shadow: 0 0 5px var(--glow-color); } 
+            50% { text-shadow: 0 0 20px var(--glow-color); } 
+            100% { text-shadow: 0 0 5px var(--glow-color); } 
+        }
 
         @media (max-width: 768px) {
             #lore-text { font-size: 1.8rem; }
+            .day-start-title { font-size: 3rem !important; }
             #continue-prompt { font-size: 1.2rem; }
         }
     </style>
@@ -63,7 +74,6 @@
         const loreTextElement = document.getElementById('lore-text');
         const continuePrompt = document.getElementById('continue-prompt');
 
-        // --- LORE DEL JUEGO (VERSIÓN CUBA) ---
         const lore_es = [
             "Camarada, su asignación ha sido confirmada. Bienvenido al Proyecto 'Ventana Digital'.",
             "Por primera vez, nuestra nación abre un canal de información controlado con el mundo exterior. El futuro depende de su éxito.",
@@ -85,27 +95,33 @@
         let lore;
         let loreIndex = 0;
         let slotId;
+        let settings;
         
         function startGame() {
             document.removeEventListener('click', advanceLore);
             continuePrompt.style.display = 'none';
-            loreTextElement.textContent = "CARGANDO PROTOCOLOS...";
 
             const urlParams = new URLSearchParams(window.location.search);
             const isNewGame = urlParams.has('tutorial');
+            let dayToShow = 1;
+
+            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+            let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
             
             if (isNewGame) {
-                const savedData = localStorage.getItem('protocoloAccesoGameSaves');
-                let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
                 const withTutorial = urlParams.get('tutorial') === 'true';
-
                 gameSaves[slotId] = { day: 1, money: 50, tutorial: withTutorial }; 
                 localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+            } else if (gameSaves[slotId]) {
+                dayToShow = gameSaves[slotId].day;
             }
+
+            loreTextElement.className = 'day-start-title';
+            loreTextElement.textContent = settings.lang === 'es' ? `INICIANDO DÍA ${dayToShow}` : `INITIATING DAY ${dayToShow}`;
 
             setTimeout(() => {
                 window.location.href = `game.html?slot=${slotId}`;
-            }, 2000);
+            }, 3000);
         }
 
         function advanceLore() {
@@ -119,13 +135,21 @@
                 startGame();
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
+        
+        function applySettings() {
             const savedSettings = localStorage.getItem('protocoloAccesoSettings');
-            const settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es' };
+            settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es' };
             
             document.body.classList.add(`theme-${settings.theme}`);
             if (settings.crt) document.body.classList.add('crt-effect');
+
+            if (settings.fullscreen && !document.fullscreenElement) {
+               
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applySettings();
             
             lore = settings.lang === 'en' ? lore_en : lore_es;
             
