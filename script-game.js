@@ -34,15 +34,24 @@ const elements = {
     payBillsBtn: document.getElementById('pay-bills-btn'),
     shopItems: document.getElementById('shop-items'),
     shopMoneyDisplay: document.getElementById('shop-money-display'),
+    showLoreBtn: document.getElementById('show-lore-btn'),
     nextDayBtn: document.getElementById('next-day-btn'),
     tutorialOverlay: document.getElementById('tutorial-overlay'),
     tutorialHighlighter: document.getElementById('tutorial-highlighter'),
     tutorialText: document.getElementById('tutorial-text'),
-    tutorialNextBtn: document.getElementById('tutorial-next-btn')
+    tutorialNextBtn: document.getElementById('tutorial-next-btn'),
+    bootOverlay: document.getElementById('boot-overlay'),
+    bootText: document.getElementById('boot-text'),
+    passwordMinigameContainer: document.getElementById('password-minigame-container'),
+    passwordGrid: document.getElementById('password-grid'),
+    passwordInput: document.getElementById('password-input'),
+    passwordError: document.getElementById('password-error'),
+    loreOverlay: document.getElementById('lore-overlay'),
+    loreText: document.getElementById('lore-text')
 };
 
 let slotId, gameSave, settings, currentApplicant, dayRules, mainTimerInterval, hackTimerInterval;
-let timeLeft;
+let timeLeft, dailyPassword;
 let applicantsProcessed = 0;
 let specialApplicantGenerated = false;
 let tutorialStep = 0;
@@ -72,6 +81,21 @@ const newsData = {
     }
 };
 
+const endOfDayLore = {
+    'es': {
+        1: "Otro día, otra pila de datos. Al menos el pago ayuda a mantener las luces encendidas. Me pregunto cuántos de los que denegué eran inocentes...",
+        2: "La presión aumenta. Cada decisión parece más pesada que la anterior. A veces, por la noche, escucho susurros en la estática... ¿o es solo mi imaginación?",
+        3: "Hoy fue intenso. Neutralizar a ese agente me hizo sentir... útil. Pero esa transmisión anónima no deja de inquietarme. ¿Quiénes son? ¿Qué quieren de mí?",
+        4: "El Estado y 'La Red'... ambos tiran de los hilos, y yo estoy en medio. Cada crédito que gano se siente manchado. No sé en quién confiar."
+    },
+    'en': {
+        1: "Another day, another pile of data. At least the pay helps keep the lights on. I wonder how many of those I denied were innocent...",
+        2: "The pressure is mounting. Every decision feels heavier than the last. Sometimes, at night, I hear whispers in the static... or is it just my imagination?",
+        3: "Today was intense. Neutralizing that agent made me feel... useful. But that anonymous transmission keeps unsettling me. Who are they? What do they want from me?",
+        4: "The State and 'The Network'... both pulling the strings, and I'm in the middle. Every credit I earn feels tainted. I don't know who to trust."
+    }
+};
+
 const tutorialSteps = [
     { el: 'applicant-data-container', text: { es: 'Aquí aparecen los datos del solicitante. Analízalos cuidadosamente.', en: 'The applicant\'s data appears here. Analyze it carefully.' } },
     { el: 'rules-box', text: { es: 'Estas son tus directivas del día. ¡Debes seguirlas al pie de la letra!', en: 'These are your directives for the day. You must follow them!' } },
@@ -94,8 +118,84 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isNaN(slotId)) { window.location.href = 'index.html'; return; }
     loadSettings(); 
     loadGameSave(); 
-    showDailyBriefing();
+    startBootSequence();
 });
+
+function getDifficultyMultiplier() {
+    switch(settings.difficulty) {
+        case 'short': return 1.25; // Hard
+        case 'long': return 0.8;   // Easy
+        default: return 1.0;       // Normal
+    }
+}
+
+function startBootSequence() {
+    elements.bootOverlay.style.display = 'flex';
+    const bootLines = [
+        "INITIATING BIOS...",
+        "MEMORY CHECK: 64KB OK",
+        "LOADING OS FROM DISK...",
+        "KERNEL V2.3.1 LOADED",
+        "MOUNTING FILE SYSTEMS...",
+        "STARTING NETWORK SERVICES...",
+        "CONNECTION TO STATE_GRID ESTABLISHED.",
+        "AWAITING SECURITY CREDENTIALS..."
+    ];
+    let lineIndex = 0;
+    const interval = setInterval(() => {
+        if (lineIndex < bootLines.length) {
+            const li = document.createElement('li');
+            li.textContent = bootLines[lineIndex];
+            elements.bootText.appendChild(li);
+            lineIndex++;
+        } else {
+            clearInterval(interval);
+            setupPasswordMinigame();
+        }
+    }, 400);
+}
+
+function setupPasswordMinigame() {
+    dailyPassword = Array(6).fill(0).map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]).join('');
+    const gridChars = Array(100).fill(0).map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"[Math.floor(Math.random() * 44)]);
+    
+    let passwordIndices = new Set();
+    while (passwordIndices.size < dailyPassword.length) {
+        passwordIndices.add(Math.floor(Math.random() * 100));
+    }
+    
+    const indicesArray = Array.from(passwordIndices);
+    for (let i = 0; i < dailyPassword.length; i++) {
+        gridChars[indicesArray[i]] = dailyPassword[i];
+    }
+    
+    elements.passwordGrid.innerHTML = '';
+    gridChars.forEach((char, index) => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        if (indicesArray.includes(index)) {
+            span.classList.add('password-char');
+        }
+        elements.passwordGrid.appendChild(span);
+    });
+    
+    elements.passwordMinigameContainer.style.display = 'flex';
+    elements.passwordInput.focus();
+}
+
+elements.passwordInput.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+        if (elements.passwordInput.value.toUpperCase() === dailyPassword) {
+            elements.bootOverlay.style.display = 'none';
+            showDailyBriefing();
+        } else {
+            elements.passwordError.style.display = 'block';
+            setTimeout(() => { elements.passwordError.style.display = 'none'; }, 2000);
+            elements.passwordInput.value = '';
+        }
+    }
+});
+
 
 function loadSettings() {
     const savedSettings = localStorage.getItem('protocoloAccesoSettings');
@@ -254,11 +354,14 @@ function endDay() {
 
 function showEndOfDayScreen() {
     const billNames = { es: {rent: "Alquiler", food: "Comida", medicine: "Medicinas", utilities: "Servicios"}, en: {rent: "Rent", food: "Food", medicine: "Medicine", utilities: "Utilities"} };
-    const totalBills = Object.values(dailyBills).reduce((a, b) => a + b, 0);
+    const multiplier = getDifficultyMultiplier();
+    let totalBills = 0;
     
     elements.billsList.innerHTML = '';
     for (const [key, value] of Object.entries(dailyBills)) {
-        elements.billsList.innerHTML += `<li><span>${billNames[settings.lang][key]}:</span> <span>-${value}C</span></li>`;
+        const adjustedCost = Math.round(value * multiplier);
+        totalBills += adjustedCost;
+        elements.billsList.innerHTML += `<li><span>${billNames[settings.lang][key]}:</span> <span>-${adjustedCost}C</span></li>`;
     }
     
     const totalText = settings.lang === 'es' ? 'GASTOS TOTALES' : 'TOTAL EXPENSES';
@@ -271,7 +374,9 @@ function showEndOfDayScreen() {
 }
 
 elements.payBillsBtn.addEventListener('click', () => {
-    const totalBills = Object.values(dailyBills).reduce((a, b) => a + b, 0);
+    const multiplier = getDifficultyMultiplier();
+    const totalBills = Object.values(dailyBills).reduce((acc, val) => acc + Math.round(val * multiplier), 0);
+    
     if (gameSave.money < totalBills) {
         const gameOverText = settings.lang === 'es' ? "INSOLVENCIA<br><small>Contrato Terminado</small>" : "INSOLVENCY<br><small>Contract Terminated</small>";
         showFeedback(false, gameOverText, true);
@@ -292,9 +397,11 @@ function populateShop() {
     const creditsText = settings.lang === 'es' ? 'Créditos disponibles' : 'Credits available';
     elements.shopMoneyDisplay.innerHTML = `${creditsText}: <strong>${gameSave.money}C</strong>`;
     elements.shopItems.innerHTML = '';
+    const multiplier = getDifficultyMultiplier();
     
     for (const id in shopUpgrades) {
         const upgrade = shopUpgrades[id];
+        const adjustedCost = Math.round(upgrade.cost * multiplier);
         const btn = document.createElement('button');
         btn.className = 'action-button shop-item';
         btn.dataset.id = id;
@@ -304,15 +411,15 @@ function populateShop() {
             const purchasedText = settings.lang === 'es' ? 'COMPRADO' : 'PURCHASED';
             btn.innerHTML = `${upgrade.name[settings.lang]} <span class="cost">[${purchasedText}]</span>`;
         } else {
-            btn.innerHTML = `${upgrade.name[settings.lang]} <span class="cost">${upgrade.cost}C</span>`;
-            if (gameSave.money < upgrade.cost) {
+            btn.innerHTML = `${upgrade.name[settings.lang]} <span class="cost">${adjustedCost}C</span>`;
+            if (gameSave.money < adjustedCost) {
                 btn.disabled = true;
             }
         }
 
         btn.addEventListener('click', () => {
-            if (gameSave.money >= upgrade.cost && !gameSave.upgrades[id]) {
-                gameSave.money -= upgrade.cost;
+            if (gameSave.money >= adjustedCost && !gameSave.upgrades[id]) {
+                gameSave.money -= adjustedCost;
                 gameSave.upgrades[id] = true;
                 saveGame();
                 populateShop();
@@ -322,239 +429,17 @@ function populateShop() {
     }
 }
 
-elements.nextDayBtn.addEventListener('click', () => {
-    gameSave.day++;
-    saveGame();
-    location.reload();
+elements.showLoreBtn.addEventListener('click', () => {
+    elements.endOfDayOverlay.style.display = 'none';
+    const lore = endOfDayLore[settings.lang][gameSave.day];
+    if (lore) {
+        elements.loreText.textContent = lore;
+        elements.loreOverlay.style.display = 'flex';
+    } else {
+        // Si no hay lore para ese día, simplemente proceder
+        elements.nextDayBtn.click();
+    }
 });
 
-function setDayRules() {
-    elements.rulesList.innerHTML = '';
-    switch (gameSave.day) {
-        case 1: dayRules = { allowedCountries: ["Cuba"] }; addRule("Solo se permite acceso a ciudadanos de Cuba."); break;
-        case 2: dayRules = { allowedCountries: ["Cuba", "Rusia"], bannedReasons: ["Negocios"] }; addRule("Acceso permitido: Cuba, Rusia."); addRule("Motivo 'Negocios' está denegado."); break;
-        case 3: dayRules = { bannedCountries: ["EE.UU."] }; addRule("Denegar todas las solicitudes de EE.UU."); break;
-        case 4: dayRules = { requiredReason: "Investigación Académica" }; addRule("Solo se permite el motivo 'Investigación Académica'."); break;
-        case 5: dayRules = { bannedCountries: ["EE.UU.", "Rusia"], bannedReasons: ["Negocios", "Turismo"]}; addRule("DENEGAR: EE.UU. y Rusia."); addRule("DENEGAR: 'Negocios' y 'Turismo'."); break;
-        default: dayRules = { bannedCountries: ["EE.UU.", "España"]}; addRule("Acceso denegado a: EE.UU., España."); break;
-    }
-}
 
-function addRule(text) { const li = document.createElement('li'); li.textContent = text; elements.rulesList.appendChild(li); }
-
-function generateApplicant() {
-    if (gameSave.day === 3 && !specialApplicantGenerated && applicantsProcessed === 3) {
-        specialApplicantGenerated = true;
-        return { name: "Javier Rodríguez", country: "EE.UU.", id: `FLG-1337`, reason: "Turismo", balance: 350, hackAttempted: false, responses: { denyCorrect: "Maldición... Me han encontrado." }, isValid: false, isHighValueTarget: true };
-    }
-    const applicant = { name: names[Math.floor(Math.random() * names.length)], country: countries[Math.floor(Math.random() * countries.length)], id: `VEN-${Math.floor(1000 + Math.random() * 9000)}`, reason: reasons[Math.floor(Math.random() * reasons.length)], balance: Math.floor(Math.random() * 951) + 50, hackAttempted: false, responses: { approveCorrect: "Conexión establecida.", approveIncorrect: "Demasiado fácil.", denyCorrect: "Entendido.", denyIncorrect: "¿Por qué?" } };
-    let isValid = true;
-    if (dayRules.allowedCountries && !dayRules.allowedCountries.includes(applicant.country)) isValid = false;
-    if (dayRules.bannedCountries && dayRules.bannedCountries.includes(applicant.country)) isValid = false;
-    if (dayRules.bannedReasons && dayRules.bannedReasons.includes(applicant.reason)) isValid = false;
-    if (dayRules.requiredReason && dayRules.requiredReason !== applicant.reason) isValid = false;
-    applicant.isValid = isValid;
-    applicant.sectTarget = false;
-    if (gameSave.day > 1 && Math.random() < 0.3) { 
-        applicant.sectTarget = true;
-        applicant.sectInstruction = applicant.isValid ? 'deny' : 'approve';
-    }
-    return applicant;
-}
-
-function calculateTotalTime() {
-    let time = baseTimePerApplicant;
-    if (settings.difficulty === 'short') time *= 0.7;
-    if (settings.difficulty === 'long') time *= 1.5;
-    if (gameSave.upgrades.timeExtender) time += 5;
-    return time;
-}
-
-function startTimer(initialTime = null) {
-    clearInterval(mainTimerInterval);
-    elements.timerBar.classList.remove('low-time');
-    const totalTime = calculateTotalTime();
-    timeLeft = initialTime !== null ? initialTime : totalTime;
-    
-    mainTimerInterval = setInterval(() => {
-        timeLeft--;
-        elements.timerBar.style.width = `${(timeLeft / totalTime) * 100}%`;
-        if (timeLeft <= 5) elements.timerBar.classList.add('low-time');
-        if (timeLeft <= 0) {
-            addCommsLog("Tiempo de respuesta agotado.", "SYSTEM");
-            processDecision(false);
-        }
-    }, 1000);
-}
-
-function processDecision(playerApproves) {
-    clearInterval(mainTimerInterval);
-    let message, feedbackText;
-    let correctAccordingToState = playerApproves === currentApplicant.isValid;
-
-    delete gameSave.activeApplicant;
-    
-    if (currentApplicant.isHighValueTarget && !playerApproves) {
-        addCommsLog("Objetivo de alto interés neutralizado. Bonificación acreditada.", "CENTRAL");
-        gameSave.money += 50;
-    }
-
-    if (currentApplicant.sectTarget) {
-        const playerObeyedSect = (playerApproves && currentApplicant.sectInstruction === 'approve') || (!playerApproves && currentApplicant.sectInstruction === 'deny');
-        if (playerObeyedSect) {
-            addCommsLog("Bien hecho. Transferencia de fondos iniciada.", "TRANSMISIÓN ANÓNIMA", true);
-            gameSave.money += 75;
-            gameSave.sectAllegiance++;
-            showFeedback(true, "ÓRDENES CUMPLIDAS");
-        } else {
-            addCommsLog("Nos has decepcionado, operador.", "TRANSMISIÓN ANÓNIMA", true);
-            gameSave.sectAllegiance--;
-            showFeedback(false, "ORDEN IGNORADA");
-        }
-    }
-
-    if (correctAccordingToState) {
-        if (!currentApplicant.sectTarget) {
-            let bonus;
-            switch(settings.difficulty) {
-                case 'short': bonus = 15; break; // Hard
-                case 'long': bonus = 8; break;   // Easy
-                default: bonus = 10;             // Normal
-            }
-            if (gameSave.upgrades.payBonus) bonus += 5;
-            gameSave.money += bonus;
-            feedbackText = "DECISIÓN CORRECTA";
-            showFeedback(true, feedbackText);
-        }
-        message = playerApproves ? currentApplicant.responses.approveCorrect : currentApplicant.responses.denyCorrect;
-    } else {
-        gameSave.money -= 25;
-        feedbackText = playerApproves ? "BRECHA DE SEGURIDAD" : "BLOQUEO INCORRECTO";
-        showFeedback(false, feedbackText);
-        message = playerApproves ? currentApplicant.responses.approveIncorrect : currentApplicant.responses.denyIncorrect;
-    }
-    
-    saveGame();
-    addCommsLog(message, currentApplicant.name);
-    setTimeout(nextApplicant, 2500);
-}
-
-function startHackMinigame() {
-    elements.approveBtn.disabled = true;
-    elements.denyBtn.disabled = true;
-    const sequence = Array(8).fill(0).map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]).join('');
-    elements.hackSequence.textContent = sequence;
-    elements.hackInput.value = '';
-    elements.hackMinigame.style.display = 'flex';
-    elements.hackInput.focus();
-    
-    let hackTime;
-    switch(settings.difficulty) {
-        case 'short': hackTime = 5; break; // Hard
-        case 'long': hackTime = 10; break;  // Easy
-        default: hackTime = 7;              // Normal
-    }
-    if (gameSave.upgrades.hackHelper) hackTime += 3;
-
-    elements.hackTimer.style.transition = `width ${hackTime}s linear`;
-    elements.hackTimer.style.width = '100%';
-    setTimeout(() => { elements.hackTimer.style.width = '0%'; }, 100);
-    
-    hackTimerInterval = setTimeout(() => processHackResult(false), hackTime * 1000);
-    elements.hackInput.oninput = () => { if (elements.hackInput.value.toUpperCase() === sequence) { processHackResult(true); } };
-}
-
-function processHackResult(success) {
-    clearTimeout(hackTimerInterval);
-    currentApplicant.hackAttempted = true;
-    gameSave.activeApplicant.data.hackAttempted = true;
-    saveGame();
-    elements.hackMinigame.style.display = 'none';
-    let message;
-    if (success) {
-        const stolen = Math.floor(currentApplicant.balance * 0.30);
-        gameSave.money += stolen;
-        message = `HACKEO EXITOSO. +${stolen} créditos transferidos.`;
-        showFeedback(true, "ÉXITO");
-    } else {
-        gameSave.money -= 50;
-        message = `HACKEO FALLIDO. Actividad sospechosa detectada. Multa de 50 créditos impuesta.`;
-        showFeedback(false, "FALLO");
-    }
-    addCommsLog(message);
-    updateUI();
-    elements.approveBtn.disabled = false;
-    elements.denyBtn.disabled = false;
-}
-
-elements.approveBtn.addEventListener('click', () => processDecision(true));
-elements.denyBtn.addEventListener('click', () => processDecision(false));
-elements.hackBtn.addEventListener('click', startHackMinigame);
-
-function updateUI() {
-    elements.dayCounter.textContent = `DÍA: ${gameSave.day}`;
-    elements.moneyCounter.textContent = `CRÉDITOS: ${gameSave.money}`;
-    elements.applicantCounter.textContent = `SOLICITUD: ${applicantsProcessed} / ${dailyGoal}`;
-    if (currentApplicant) {
-        elements.applicantName.textContent = currentApplicant.name;
-        elements.applicantCountry.textContent = currentApplicant.country;
-        elements.applicantId.textContent = currentApplicant.id;
-        elements.applicantReason.textContent = currentApplicant.reason;
-        elements.applicantBalance.textContent = currentApplicant.balance;
-        elements.hackBtn.disabled = currentApplicant.hackAttempted;
-    }
-}
-
-function addCommsLog(text, sender = 'SYSTEM', isSect = false) {
-    const p = document.createElement('p');
-    p.textContent = sender === 'SYSTEM' ? `> ${text}` : `> [${sender}]: ${text}`;
-    if (isSect) { p.classList.add('sect-message'); }
-    elements.commsLog.insertBefore(p, elements.commsLog.firstChild);
-    elements.commsLog.scrollTop = 0;
-}
-
-function showFeedback(isCorrect, customHtml = '', isFinal = false) {
-    elements.feedbackOverlay.classList.remove('correct', 'incorrect');
-    elements.feedbackOverlay.innerHTML = customHtml;
-    elements.feedbackOverlay.classList.add(isCorrect ? 'correct' : 'incorrect');
-    elements.feedbackOverlayContainer.style.display = 'flex';
-    const duration = isFinal ? 9500 : 2500;
-    if (!isFinal) {
-        setTimeout(() => elements.feedbackOverlayContainer.style.display = 'none', duration);
-    }
-}
-
-function endGame() {
-    let endTitle = ""; 
-    let endMessage = "";
-    let trophyId = "";
-
-    if (gameSave.sectAllegiance > 3 && gameSave.money > 200) {
-        endTitle = "AGENTE DE LA SOMBRA"; endMessage = "Has servido bien a La Red Invisible. Tu lealtad y eficacia te han ganado un lugar en el círculo interno. El verdadero trabajo comienza ahora.";
-        trophyId = "shadow-agent";
-    } else if (gameSave.sectAllegiance < -2 && gameSave.money > 250) {
-        endTitle = "OPERADOR LEAL"; endMessage = "Tu dedicación al Estado no ha pasado desapercibida. Has sido ascendido a un puesto de mayor responsabilidad. La soberanía digital está a salvo gracias a ti.";
-        trophyId = "loyal-operator";
-    } else if (gameSave.sectAllegiance > 2 && gameSave.money <= 100) {
-        endTitle = "MÁRTIR PRESCINDIBLE"; endMessage = "Seguiste sus órdenes, pero tus errores te hicieron un lastre. La Red te ha abandonado y el Estado ha descubierto tu traición. Tu terminal ha sido desconectada... permanentemente.";
-        trophyId = "expendable-martyr";
-    } else {
-        endTitle = "RECURSO AGOTADO"; endMessage = "Tu rendimiento ha sido mediocre. No has demostrado lealtad ni competencia. El Proyecto 'Ventana Digital' ha prescindido de tus servicios. Estás despedido.";
-        trophyId = "depleted-resource";
-    }
-
-    const savedTrophies = JSON.parse(localStorage.getItem('protocoloAccesoTrophies')) || {};
-    savedTrophies[trophyId] = true;
-    if (settings.difficulty === 'short') {
-        savedTrophies['master-operator'] = true;
-    }
-    localStorage.setItem('protocoloAccesoTrophies', JSON.stringify(savedTrophies));
-
-    showFeedback(true, `FIN DE LA ASIGNACIÓN<br><br><small style="font-size: 3rem;">${endTitle}</small><br><p style="font-size: 1.5rem; max-width: 800px; margin: auto;">${endMessage}</p>`, true);
-    
-    const savedData = localStorage.getItem('protocoloAccesoGameSaves');
-    let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
-    gameSaves[slotId] = null;
-    localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
-    setTimeout(() => window.location.href = 'index.html', 12000);
-}
+elements.nextDayBtn.addEventListener('click', () => {
