@@ -1,3 +1,57 @@
+// --- NUEVA SECCIÓN DE AUDIO ---
+const AudioManager = {
+    sounds: {},
+    music: null,
+    settings: null,
+
+    init(settings) {
+        this.settings = settings;
+        // SFX (Sonidos cortos)
+        this.sounds = {
+            'click': new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUIAAABvT1/y/4b/c/yI/TT/ev6L/I39vP6D/En8V/sV/Nf9iP+m//8A/3A='),
+            'confirm': new Audio('data:audio/wav;base64,UklGRiYBAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQBAADBDv8KMw0/D0cSWxJvF/QZ+hqIG/scBx6eH2sgliNsI/sk/iXhKE8pAyoEKwAtxy7IL+cwWDNsNCY1TjXUNuA3JDkQOww8CT0APwBBf0K4Q/hElEUwRowlDwc='),
+        };
+        // Música de Fondo
+        this.music = new Audio('data:audio/wav;base64,UklGRigCAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVwCAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIA==');
+        this.music.loop = true;
+
+        this.updateVolume();
+    },
+
+    play(soundName) {
+        if (this.sounds[soundName]) {
+            this.sounds[soundName].currentTime = 0;
+            this.sounds[soundName].play().catch(e => {}); // El .catch evita errores si el usuario no ha interactuado aún
+        }
+    },
+
+    startMusic() {
+        if (this.music) {
+            this.music.play().catch(e => {});
+        }
+    },
+    
+    stopMusic() {
+        if (this.music) {
+            this.music.pause();
+            this.music.currentTime = 0;
+        }
+    },
+
+    updateVolume() {
+        if (!this.settings) return;
+        // Actualizar volumen de SFX
+        for (const key in this.sounds) {
+            // El volumen es un combo del master y el sfx, ambos de 0 a 1
+            this.sounds[key].volume = (this.settings.masterVol / 10) * (this.settings.sfxVol / 10);
+        }
+        // Actualizar volumen de la música (solo afectado por el master)
+        if (this.music) {
+            this.music.volume = this.settings.masterVol / 10;
+        }
+    }
+};
+
 // --- DICCIONARIO DE IDIOMAS ---
 const langStrings = {
     'es': {
@@ -74,6 +128,10 @@ const trophiesContainer = document.getElementById('trophies-container');
 
 // --- NAVEGACIÓN ---
 const goToScreen = (screen) => { allScreens.forEach(s => s.classList.remove('active')); screen.classList.add('active'); };
+
+document.querySelectorAll('.menu-button, .slot').forEach(btn => {
+    btn.addEventListener('click', () => AudioManager.play('click'));
+});
 document.getElementById('new-game-btn').addEventListener('click', () => { loadGameSaves(); goToScreen(newGameScreen); });
 document.getElementById('options-btn').addEventListener('click', () => goToScreen(optionsScreen));
 document.getElementById('credits-btn').addEventListener('click', () => goToScreen(creditsScreen));
@@ -98,8 +156,7 @@ const loadGameSaves = () => {
 // --- LÓGICA DE TROFEOS ---
 const displayTrophies = () => {
     const unlockedTrophies = JSON.parse(localStorage.getItem('protocoloAccesoTrophies')) || {};
-    trophiesContainer.innerHTML = ''; // Limpiar contenedor
-
+    trophiesContainer.innerHTML = '';
     trophies.forEach(trophyId => {
         const isUnlocked = unlockedTrophies[trophyId];
         const trophyDiv = document.createElement('div');
@@ -107,24 +164,19 @@ const displayTrophies = () => {
         if (!isUnlocked) {
             trophyDiv.classList.add('locked');
         }
-
         const trophyTitle = document.createElement('h3');
         trophyTitle.className = 'trophy-title';
         const trophyDesc = document.createElement('p');
         trophyDesc.className = 'trophy-desc';
-
         const nameKey = isUnlocked ? `trophy_${trophyId.replace(/-/g, '_')}_name` : 'trophy_locked_name';
         const descKey = isUnlocked ? `trophy_${trophyId.replace(/-/g, '_')}_desc` : 'trophy_locked_desc';
-
         trophyTitle.textContent = langStrings[settings.lang][nameKey];
         trophyDesc.textContent = langStrings[settings.lang][descKey];
-
         trophyDiv.appendChild(trophyTitle);
         trophyDiv.appendChild(trophyDesc);
         trophiesContainer.appendChild(trophyDiv);
     });
 };
-
 
 // --- LÓGICA DEL MODAL DE TUTORIAL ---
 const showTutorialPrompt = () => tutorialPrompt.classList.add('active');
@@ -136,6 +188,7 @@ document.querySelector('.slots-container').addEventListener('click', (e) => {
     selectedSlotId = parseInt(slotButton.dataset.slotId, 10);
     if (gameSaves[selectedSlotId]) {
         if (confirm(langStrings[settings.lang].loadGameConfirm)) {
+            AudioManager.play('confirm');
             window.location.href = `lore.html?slot=${selectedSlotId}`;
         }
     } else {
@@ -145,16 +198,18 @@ document.querySelector('.slots-container').addEventListener('click', (e) => {
 
 document.getElementById('tutorial-yes').addEventListener('click', () => {
     hideTutorialPrompt();
+    AudioManager.play('confirm');
     window.location.href = `lore.html?slot=${selectedSlotId}&newGame=true&tutorial=true`;
 });
 document.getElementById('tutorial-no').addEventListener('click', () => {
     hideTutorialPrompt();
+    AudioManager.play('confirm');
     window.location.href = `lore.html?slot=${selectedSlotId}&newGame=true&tutorial=false`;
 });
 document.getElementById('tutorial-cancel').addEventListener('click', hideTutorialPrompt);
 
 // --- LÓGICA DE CONFIGURACIÓN ---
-const updateUI = () => {
+const updateUIandAudio = () => {
     document.querySelectorAll('[data-lang-key]').forEach(el => {
         const key = el.getAttribute('data-lang-key');
         if(langStrings[settings.lang][key]) {
@@ -180,34 +235,38 @@ const updateUI = () => {
     document.getElementById('lang-toggle').textContent = `[ ${settings.lang === 'es' ? 'Español' : 'English'} ]`;
     const difficultyMap = { short: (settings.lang === 'es' ? 'Difícil' : 'Hard'), normal: 'Normal', long: (settings.lang === 'es' ? 'Fácil' : 'Easy') };
     document.getElementById('difficulty-toggle').textContent = `[ ${difficultyMap[settings.difficulty]} ]`;
+    
+    AudioManager.updateVolume();
 };
-const loadSettings = () => { const saved = localStorage.getItem('protocoloAccesoSettings'); if(saved) { settings = JSON.parse(saved); } updateUI(); };
-const saveSettings = () => { localStorage.setItem('protocoloAccesoSettings', JSON.stringify(settings)); document.getElementById('save-status').style.opacity = '1'; setTimeout(() => { document.getElementById('save-status').style.opacity = '0'; }, 2000); };
+const loadSettings = () => { const saved = localStorage.getItem('protocoloAccesoSettings'); if(saved) { settings = JSON.parse(saved); } updateUIandAudio(); };
+const saveSettings = () => { localStorage.setItem('protocoloAccesoSettings', JSON.stringify(settings)); document.getElementById('save-status').style.opacity = '1'; setTimeout(() => { document.getElementById('save-status').style.opacity = '0'; }, 2000); AudioManager.play('confirm'); };
 
 // --- EVENTOS DE CONFIGURACIÓN ---
 document.getElementById('save-btn').addEventListener('click', saveSettings);
 document.getElementById('reset-progress').addEventListener('click', () => { if(confirm(langStrings[settings.lang].resetConfirm)) { localStorage.removeItem('protocoloAccesoGameSaves'); localStorage.removeItem('protocoloAccesoTrophies'); loadGameSaves();} });
 const elem = document.documentElement;
-document.addEventListener('fullscreenchange', () => { settings.fullscreen = !!document.fullscreenElement; updateUI(); });
+document.addEventListener('fullscreenchange', () => { settings.fullscreen = !!document.fullscreenElement; updateUIandAudio(); });
 document.getElementById('fullscreen-toggle').addEventListener('click', () => { if (!!document.fullscreenElement) { if(document.exitFullscreen) document.exitFullscreen(); } else { if(elem.requestFullscreen) elem.requestFullscreen(); } });
-document.getElementById('master-vol-minus').addEventListener('click', () => { if(settings.masterVol > 0) settings.masterVol--; updateUI(); });
-document.getElementById('master-vol-plus').addEventListener('click', () => { if(settings.masterVol < 10) settings.masterVol++; updateUI(); });
-document.getElementById('sfx-vol-minus').addEventListener('click', () => { if(settings.sfxVol > 0) settings.sfxVol--; updateUI(); });
-document.getElementById('sfx-vol-plus').addEventListener('click', () => { if(settings.sfxVol < 10) settings.sfxVol++; updateUI(); });
-document.getElementById('crt-toggle').addEventListener('click', () => { settings.crt = !settings.crt; updateUI(); });
-document.getElementById('animation-toggle').addEventListener('click', () => { settings.animation = !settings.animation; updateUI(); });
-document.getElementById('theme-toggle').addEventListener('click', () => { settings.theme = themes[(themes.indexOf(settings.theme) + 1) % themes.length]; updateUI(); });
-document.getElementById('lang-toggle').addEventListener('click', () => { settings.lang = languages[(languages.indexOf(settings.lang) + 1) % languages.length]; updateUI(); });
-document.getElementById('difficulty-toggle').addEventListener('click', () => { settings.difficulty = difficulties[(difficulties.indexOf(settings.difficulty) + 1) % difficulties.length]; updateUI(); });
+document.getElementById('master-vol-minus').addEventListener('click', () => { if(settings.masterVol > 0) settings.masterVol--; updateUIandAudio(); });
+document.getElementById('master-vol-plus').addEventListener('click', () => { if(settings.masterVol < 10) settings.masterVol++; updateUIandAudio(); });
+document.getElementById('sfx-vol-minus').addEventListener('click', () => { if(settings.sfxVol > 0) settings.sfxVol--; updateUIandAudio(); });
+document.getElementById('sfx-vol-plus').addEventListener('click', () => { if(settings.sfxVol < 10) settings.sfxVol++; updateUIandAudio(); });
+document.getElementById('crt-toggle').addEventListener('click', () => { settings.crt = !settings.crt; updateUIandAudio(); });
+document.getElementById('animation-toggle').addEventListener('click', () => { settings.animation = !settings.animation; updateUIandAudio(); });
+document.getElementById('theme-toggle').addEventListener('click', () => { settings.theme = themes[(themes.indexOf(settings.theme) + 1) % themes.length]; updateUIandAudio(); });
+document.getElementById('lang-toggle').addEventListener('click', () => { settings.lang = languages[(languages.indexOf(settings.lang) + 1) % languages.length]; updateUIandAudio(); });
+document.getElementById('difficulty-toggle').addEventListener('click', () => { settings.difficulty = difficulties[(difficulties.indexOf(settings.difficulty) + 1) % difficulties.length]; updateUIandAudio(); });
 
 // --- INICIALIZACIÓN ---
 window.addEventListener('load', () => {
     loadSettings(); 
+    AudioManager.init(settings);
 
-    // Simula el tiempo de carga y luego cambia a la pantalla de menú principal
+    // Para que la música no inicie abruptamente, esperamos una interacción del usuario.
+    document.body.addEventListener('click', () => AudioManager.startMusic(), { once: true });
+
     setTimeout(() => {
         goToScreen(mainMenuScreen);
-        // Inicia la animación de escritura del título una vez que la pantalla está activa
         document.querySelector('#main-menu-screen header h1').classList.add('start-typing');
-    }, 4000); // 4 segundos de carga
+    }, 4000);
 });
