@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booting System...</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #a8ffbe; --background-color: #0d1a14;
+            --glow-color: rgba(168, 255, 190, 0.5); --border-color: rgba(168, 255, 190, 0.4);
+            --deny-color: #ff6e6e;
+        }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: var(--background-color); color: var(--primary-color); font-family: 'VT323', monospace; }
+        body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); --border-color: rgba(255, 194, 84, 0.4); }
+        body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); --border-color: rgba(130, 234, 255, 0.4); }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        #vignette { box-shadow: inset 0 0 25vmin rgba(0,0,0,0.8); }
+        .crt-effect::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; z-index: 11; pointer-events: none; animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.21; } 5% { opacity: 0.34; } 10% { opacity: 0.23; } 15% { opacity: 0.45; } 20% { opacity: 0.31; } 25% { opacity: 0.5; } 30% { opacity: 0.24; } 35% { opacity: 0.41; } 40% { opacity: 0.28; } 45% { opacity: 0.33; } 50% { opacity: 0.48; } 55% { opacity: 0.29; } 60% { opacity: 0.42; } 65% { opacity: 0.3; } 70% { opacity: 0.5; } 75% { opacity: 0.35; } 80% { opacity: 0.4; } 85% { opacity: 0.22; } 90% { opacity: 0.39; } 95% { opacity: 0.47; } 100% { opacity: 0.31; } }
+
+        .boot-container { padding: 2vw; font-size: 1.5rem; text-shadow: 0 0 5px var(--glow-color); height: 100vh; box-sizing: border-box; overflow: hidden; }
+        #boot-log p { margin: 0; white-space: pre; }
+        .caret { display: inline-block; width: 1em; height: 1.2em; background-color: var(--primary-color); animation: blink-caret 1s step-end infinite; }
+        @keyframes blink-caret { from, to { background-color: transparent } 50% { background-color: var(--primary-color); } }
+
+        #password-minigame { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 700px; text-align: center; border: 1px solid var(--border-color); background: var(--background-color); padding: 20px; animation: fade-in 1s forwards; }
+        #password-minigame h2 { font-family: 'Special Elite', cursive; }
+        #password-matrix { font-size: 1.2rem; letter-spacing: 5px; line-height: 1.4; word-break: break-all; padding: 15px; background: rgba(0,0,0,0.3); border: 1px dashed var(--border-color); margin-bottom: 20px; user-select: none; }
+        #password-prompt { display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+        #password-input { font-family: 'VT323', monospace; font-size: 2rem; color: var(--primary-color); background: transparent; border: none; border-bottom: 2px solid var(--border-color); width: 300px; text-align: center; text-transform: uppercase; }
+        #password-input:focus { outline: none; }
+        .access-denied { animation: shake 0.5s; color: var(--deny-color); }
+        
+        .matrix-char {
+            opacity: 0.4;
+            text-shadow: none;
+        }
+        .password-highlight {
+            color: #fff;
+            opacity: 1;
+            text-shadow: 0 0 10px #fff, 0 0 15px var(--glow-color);
+            animation: pulse-glow 1s infinite ease-in-out;
+        }
+
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        @keyframes pulse-glow {
+            0% { text-shadow: 0 0 10px #fff, 0 0 15px var(--glow-color); opacity: 1; }
+            50% { text-shadow: 0 0 15px #fff, 0 0 25px var(--glow-color); opacity: 0.8; }
+            100% { text-shadow: 0 0 10px #fff, 0 0 15px var(--glow-color); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .boot-container { font-size: 1rem; }
+            #password-minigame { width: 95%; }
+            #password-matrix { font-size: 0.8rem; letter-spacing: 2px; }
+            #password-prompt { font-size: 1.5rem; }
+            #password-input { width: 200px; font-size: 1.5rem;}
+        }
+    </style>
+</head>
+<body>
+    <div id="vignette" class="overlay"></div>
+    <div class="boot-container">
+        <div id="boot-log"></div>
+    </div>
+
+    <div id="password-minigame">
+        <h2 id="password-title">AUTENTICACIÓN REQUERIDA</h2>
+        <p id="password-desc">Transcriba la clave de acceso resaltada en la matriz de datos.</p>
+        <div id="password-matrix"></div>
+        <div id="password-prompt">
+            <span>> </span>
+            <input type="text" id="password-input" maxlength="15" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+        </div>
+    </div>
+    
+    <script>
+        const bootLog = document.getElementById('boot-log');
+        const passwordMinigame = document.getElementById('password-minigame');
+        const passwordMatrix = document.getElementById('password-matrix');
+        const passwordInput = document.getElementById('password-input');
+        const passwordTitle = document.getElementById('password-title');
+        const passwordDesc = document.getElementById('password-desc');
+
+        let slotId, settings;
+
+        const bootLines_es = ["INITIATING BOOT SEQUENCE...", "MEMORY CHECK: 2048 KB OK", "LOADING KERNEL v3.1... OK", "MOUNTING FILE SYSTEM '/dev/root'...", "PROTOCOLOS DE SOBERANÍA DIGITAL... CARGADOS.", "VERIFICANDO INTEGRIDAD DEL OPERADOR...", "CONEXIÓN SEGURA AL SERVIDOR CENTRAL... ESTABLECIDA.", "Esperando autenticación del usuario..."];
+        const bootLines_en = ["INITIATING BOOT SEQUENCE...", "MEMORY CHECK: 2048 KB OK", "LOADING KERNEL v3.1... OK", "MOUNTING FILE SYSTEM '/dev/root'...", "DIGITAL SOVEREIGNTY PROTOCOLS... LOADED.", "VERIFYING OPERATOR INTEGRITY...", "SECURE CONNECTION TO CENTRAL SERVER... ESTABLISHED.", "Awaiting user authentication..."];
+        const passwords = { 'es': "SOBERANIA", 'en': "SOVEREIGNTY" };
+        const langStrings = { 
+            'es': { auth_req: "AUTENTICACIÓN REQUERIDA", locate_key: "Transcriba la clave de acceso resaltada en la matriz de datos.", access_denied: "ACCESO DENEGADO", access_granted: "ACCESO CONCEDIDO" }, 
+            'en': { auth_req: "AUTHENTICATION REQUIRED", locate_key: "Transcribe the highlighted access key from the data matrix.", access_denied: "ACCESS DENIED", access_granted: "ACCESS GRANTED" }
+        };
+        let lineIndex = 0;
+
+        function typeLine() {
+            const bootLines = settings.lang === 'en' ? bootLines_en : bootLines_es;
+            if (lineIndex < bootLines.length) {
+                const p = document.createElement('p');
+                p.textContent = `> ${bootLines[lineIndex]}`;
+                bootLog.appendChild(p);
+                window.scrollTo(0, document.body.scrollHeight);
+                lineIndex++;
+                setTimeout(typeLine, Math.random() * 200 + 100);
+            } else {
+                const p = document.createElement('p');
+                const caret = document.createElement('span');
+                caret.className = 'caret';
+                p.appendChild(caret);
+                bootLog.appendChild(p);
+                setTimeout(showPasswordMinigame, 2000);
+            }
+        }
+
+        function generatePasswordMatrix(password) {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()[]{};:<>";
+            const matrixSize = 250;
+            let matrixText = Array(matrixSize).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+            const startIndex = Math.floor(Math.random() * (matrixSize - password.length));
+            
+            const preString = `<span class="matrix-char">${matrixText.substring(0, startIndex)}</span>`;
+            const postString = `<span class="matrix-char">${matrixText.substring(startIndex + password.length)}</span>`;
+            const highlightedPassword = `<span class="password-highlight">${password}</span>`;
+            
+            passwordMatrix.innerHTML = preString + highlightedPassword + postString;
+        }
+
+        function showPasswordMinigame() {
+            bootLog.style.display = 'none';
+            const password = passwords[settings.lang];
+            generatePasswordMatrix(password);
+            passwordTitle.textContent = langStrings[settings.lang].auth_req;
+            passwordDesc.textContent = langStrings[settings.lang].locate_key;
+            passwordMinigame.style.display = 'block';
+            passwordInput.focus();
+        }
+
+        passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { checkPassword(); } });
+
+        function checkPassword() {
+            const correctPassword = passwords[settings.lang];
+            if (passwordInput.value.toUpperCase() === correctPassword) {
+                passwordTitle.textContent = langStrings[settings.lang].access_granted;
+                passwordTitle.classList.remove('access-denied');
+                passwordDesc.textContent = "Redirigiendo a la terminal...";
+                passwordInput.disabled = true;
+                setTimeout(() => { window.location.href = `game.html?slot=${slotId}`; }, 2000);
+            } else {
+                passwordTitle.textContent = langStrings[settings.lang].access_denied;
+                passwordTitle.classList.add('access-denied');
+                passwordInput.value = '';
+                setTimeout(() => {
+                    passwordTitle.textContent = langStrings[settings.lang].auth_req;
+                    passwordTitle.classList.remove('access-denied');
+                }, 1500);
+            }
+        }
+
+        function applySettings() {
+            const savedSettings = localStorage.getItem('protocoloAccesoSettings');
+            settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es' };
+            document.body.classList.add(`theme-${settings.theme}`);
+            if (settings.crt) document.body.classList.add('crt-effect');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applySettings();
+            const urlParams = new URLSearchParams(window.location.search);
+            slotId = parseInt(urlParams.get('slot'), 10);
+            if (isNaN(slotId)) { window.location.href = 'index.html'; return; }
+            setTimeout(typeLine, 1000);
+        });
+    </script>
+</body>
+</html>
