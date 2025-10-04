@@ -11,18 +11,20 @@
         :root {
             --primary-color: #a8ffbe; --background-color: #0d1a14;
             --glow-color: rgba(168, 255, 190, 0.5); --border-color: rgba(168, 255, 190, 0.4);
-            --approve-color: #a8ffbe; --deny-color: #ff6e6e;
+            --approve-color: #a8ffbe; --approve-glow: rgba(168, 255, 190, 0.7);
+            --deny-color: #ff6e6e; --deny-glow: rgba(255, 110, 110, 0.7);
+            --hack-color: #ffc254; --hack-glow: rgba(255, 194, 84, 0.7);
         }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: var(--background-color); color: var(--primary-color); font-family: 'VT323', monospace; }
-        body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); --border-color: rgba(255, 194, 84, 0.4); }
-        body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); --border-color: rgba(130, 234, 255, 0.4); }
+        body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); --border-color: rgba(255, 194, 84, 0.4); --approve-color: #ffc254; --approve-glow: rgba(255, 194, 84, 0.7); }
+        body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); --border-color: rgba(130, 234, 255, 0.4); --approve-color: #82eaff; --approve-glow: rgba(130, 234, 255, 0.7); }
 
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
         #vignette { box-shadow: inset 0 0 25vmin rgba(0,0,0,0.8); }
         .crt-effect::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; z-index: 11; pointer-events: none; animation: flicker 0.15s infinite; }
         @keyframes flicker { 0% { opacity: 0.21; } 5% { opacity: 0.34; } 10% { opacity: 0.23; } 15% { opacity: 0.45; } 20% { opacity: 0.31; } 25% { opacity: 0.5; } 30% { opacity: 0.24; } 35% { opacity: 0.41; } 40% { opacity: 0.28; } 45% { opacity: 0.33; } 50% { opacity: 0.48; } 55% { opacity: 0.29; } 60% { opacity: 0.42; } 65% { opacity: 0.3; } 70% { opacity: 0.5; } 75% { opacity: 0.35; } 80% { opacity: 0.4; } 85% { opacity: 0.22; } 90% { opacity: 0.39; } 95% { opacity: 0.47; } 100% { opacity: 0.31; } }
 
-        .game-container { display: flex; height: 100vh; padding: 15px; box-sizing: border-box; gap: 15px; padding-bottom: 80px; }
+        .game-container { display: flex; height: 100vh; padding: 15px; box-sizing: border-box; gap: 15px; padding-bottom: 100px; animation: fade-in-game 1s ease-out; }
         .applicant-pane, .info-pane { border: 1px solid var(--border-color); padding: 20px; overflow-y: auto; background: rgba(0,0,0,0.2); }
         .applicant-pane { flex: 2; }
         .info-pane { flex: 1; display: flex; flex-direction: column; gap: 20px;}
@@ -32,41 +34,79 @@
         .info-box ul { list-style-type: '> '; padding-left: 20px; margin: 0; font-size: 1.5rem; }
         #stats-box span { display: block; margin-bottom: 5px; font-size: 1.8rem; }
         #timer-bar-container { width: 100%; height: 20px; border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.3); }
-        #timer-bar { height: 100%; width: 100%; background-color: var(--primary-color); transition: width 0.5s linear; }
+        #timer-bar { height: 100%; width: 100%; background-color: var(--primary-color); transition: width 0.5s linear, background-color 0.3s; }
+        #timer-bar.low-time { background-color: var(--deny-color); animation: pulse-warning 1s infinite; }
+        #comms-log { font-size: 1.3rem; max-height: 200px; overflow-y: auto; }
+        #comms-log p { margin: 0 0 5px 0; opacity: 0.8; }
+        #comms-log p:first-child { opacity: 1; font-weight: bold; }
 
         .applicant-pane h1 { font-family: 'Special Elite', cursive; margin: 0 0 20px 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
-        .applicant-field { font-size: 1.8rem; margin-bottom: 15px; }
+        .applicant-field { font-size: 1.8rem; margin-bottom: 15px; opacity: 0; animation: fade-in-field 0.5s forwards; }
         .applicant-field strong { text-transform: uppercase; color: var(--primary-color); opacity: 0.8; }
         #applicant-name { text-shadow: 0 0 5px var(--glow-color); }
+        #financial-info { border-top: 1px dashed var(--border-color); margin-top: 20px; padding-top: 20px; }
+        #hack-btn { font-family: 'VT323', monospace; font-size: 1.5rem; background: transparent; color: var(--hack-color); border: 1px solid var(--hack-color); padding: 5px 15px; cursor: pointer; margin-left: 15px; }
+        #hack-btn:hover { background: var(--hack-color); color: var(--background-color); box-shadow: 0 0 10px var(--hack-glow); }
+        #hack-btn:disabled { color: grey; border-color: grey; cursor: not-allowed; background: transparent; box-shadow: none; opacity: 0.5; }
         
-        .decision-bar { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; z-index: 5; }
-        .decision-button { flex: 1; font-family: 'VT323', monospace; font-size: 3rem; padding: 20px 0; border: none; cursor: pointer; text-transform: uppercase; border-top: 2px solid; transition: background-color 0.2s; }
+        .decision-bar { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; z-index: 5; height: 85px; }
+        .decision-button { flex: 1; font-family: 'VT323', monospace; font-size: 3.5rem; padding: 20px 0; border: none; cursor: pointer; text-transform: uppercase; border-top: 2px solid; transition: background-color 0.2s, text-shadow 0.2s, transform 0.1s; }
+        .decision-button:active { transform: scale(0.98); }
         #approve-btn { color: var(--approve-color); border-color: var(--approve-color); background-color: rgba(168, 255, 190, 0.1); }
-        #approve-btn:hover { background-color: rgba(168, 255, 190, 0.3); }
+        #approve-btn:hover { background-color: rgba(168, 255, 190, 0.3); text-shadow: 0 0 10px var(--approve-glow); }
         #deny-btn { color: var(--deny-color); border-color: var(--deny-color); background-color: rgba(255, 110, 110, 0.1); }
-        #deny-btn:hover { background-color: rgba(255, 110, 110, 0.3); }
+        #deny-btn:hover { background-color: rgba(255, 110, 110, 0.3); text-shadow: 0 0 10px var(--deny-glow); }
 
-        #feedback-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 20; display: none; justify-content: center; align-items: center; text-align: center; font-size: 8rem; text-transform: uppercase; animation: fade-in-out 1.5s forwards; }
-        #feedback-overlay.correct { color: var(--approve-color); text-shadow: 0 0 20px var(--approve-color); }
-        #feedback-overlay.incorrect { color: var(--deny-color); text-shadow: 0 0 20px var(--deny-color); }
-        @keyframes fade-in-out { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 20; display: none; justify-content: center; align-items: center; text-align: center; }
+        #feedback-overlay { font-family: 'Special Elite', cursive; font-size: 8rem; text-transform: uppercase; animation: fade-in-out 1.5s forwards; }
+        #feedback-overlay.correct { color: var(--approve-color); text-shadow: 0 0 25px var(--approve-glow); }
+        #feedback-overlay.incorrect { color: var(--deny-color); text-shadow: 0 0 25px var(--deny-glow); }
+
+        #hack-minigame { flex-direction: column; gap: 20px; }
+        #hack-minigame h2 { font-family: 'Special Elite', cursive; font-size: 3rem; color: var(--hack-color); text-shadow: 0 0 10px var(--hack-glow); margin: 0; }
+        #hack-sequence { font-size: 4rem; letter-spacing: 10px; background: #000; padding: 10px 20px; border: 1px solid var(--hack-color); }
+        #hack-input { font-family: 'VT323', monospace; width: 500px; font-size: 4rem; letter-spacing: 10px; text-align: center; color: var(--primary-color); background: transparent; border: 1px solid var(--border-color); }
+        #hack-timer { width: 540px; height: 10px; background-color: var(--hack-color); transition: width 0.1s linear; }
+
+        @keyframes fade-in-game { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fade-in-field { from { opacity: 0; transform: translateX(-15px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fade-in-out { 0% { opacity: 0; transform: scale(0.8); } 20% { opacity: 1; transform: scale(1); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
+        @keyframes pulse-warning { 50% { filter: brightness(1.5); } }
     </style>
 </head>
 <body>
     <div id="vignette" class="overlay"></div>
-    <div id="feedback-overlay"></div>
+    
+    <div id="feedback-overlay-container" class="modal-overlay">
+        <div id="feedback-overlay"></div>
+    </div>
+    
+    <div id="hack-minigame" class="modal-overlay">
+        <h2>INTRUSIÓN DE SISTEMA</h2>
+        <p>REPLIQUE LA SECUENCIA ANTES DEL BLOQUEO:</p>
+        <div id="hack-sequence"></div>
+        <input type="text" id="hack-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+        <div id="hack-timer-container" style="border: 1px solid var(--hack-color); padding: 2px;"><div id="hack-timer"></div></div>
+    </div>
 
     <div class="game-container">
-        <!-- Panel de Solicitante (Izquierda) -->
+      
         <div class="applicant-pane">
             <h1>Solicitud de Acceso</h1>
-            <div class="applicant-field"><strong>Nombre:</strong> <span id="applicant-name"></span></div>
-            <div class="applicant-field"><strong>País de Origen:</strong> <span id="applicant-country"></span></div>
-            <div class="applicant-field"><strong>ID de Conexión:</strong> <span id="applicant-id"></span></div>
-            <div class="applicant-field"><strong>Motivo de Conexión:</strong> <span id="applicant-reason"></span></div>
+            <div id="applicant-data-container">
+                <div class="applicant-field"><strong>Nombre:</strong> <span id="applicant-name"></span></div>
+                <div class="applicant-field" style="animation-delay: 0.1s;"><strong>País de Origen:</strong> <span id="applicant-country"></span></div>
+                <div class="applicant-field" style="animation-delay: 0.2s;"><strong>ID de Conexión:</strong> <span id="applicant-id"></span></div>
+                <div class="applicant-field" style="animation-delay: 0.3s;"><strong>Motivo de Conexión:</strong> <span id="applicant-reason"></span></div>
+                <div id="financial-info" class="applicant-field" style="animation-delay: 0.4s;">
+                    <strong>Datos Financieros:</strong> 
+                    <span>Saldo: <span id="applicant-balance"></span> Créditos</span>
+                    <button id="hack-btn">[ INICIAR HACKEO ]</button>
+                </div>
+            </div>
         </div>
 
-        <!-- Panel de Información (Derecha) -->
+    
         <div class="info-pane">
             <div id="stats-box" class="info-box">
                 <span id="day-counter">DÍA: 1</span>
@@ -77,6 +117,10 @@
                 <h2>Directivas del Día</h2>
                 <ul id="rules-list"></ul>
             </div>
+            <div id="comms-box" class="info-box">
+                <h2>Registro de Comunicaciones</h2>
+                <div id="comms-log"><p>> Esperando conexión...</p></div>
+            </div>
             <div id="timer-box" class="info-box">
                 <h2>Tiempo Restante</h2>
                 <div id="timer-bar-container"><div id="timer-bar"></div></div>
@@ -84,57 +128,42 @@
         </div>
     </div>
 
-    <!-- Barra de Decisión -->
+  
     <div class="decision-bar">
         <button id="approve-btn">Aprobar</button>
         <button id="deny-btn">Denegar</button>
     </div>
 
     <script>
-        // --- ELEMENTOS DEL DOM ---
-        const dayCounter = document.getElementById('day-counter');
-        const moneyCounter = document.getElementById('money-counter');
-        const applicantCounter = document.getElementById('applicant-counter');
-        const rulesList = document.getElementById('rules-list');
-        const timerBar = document.getElementById('timer-bar');
-        const applicantName = document.getElementById('applicant-name');
-        const applicantCountry = document.getElementById('applicant-country');
-        const applicantId = document.getElementById('applicant-id');
-        const applicantReason = document.getElementById('applicant-reason');
-        const approveBtn = document.getElementById('approve-btn');
-        const denyBtn = document.getElementById('deny-btn');
-        const feedbackOverlay = document.getElementById('feedback-overlay');
+        const elements = {
+            dayCounter: document.getElementById('day-counter'), moneyCounter: document.getElementById('money-counter'),
+            applicantCounter: document.getElementById('applicant-counter'), rulesList: document.getElementById('rules-list'),
+            timerBar: document.getElementById('timer-bar'), applicantDataContainer: document.getElementById('applicant-data-container'),
+            applicantName: document.getElementById('applicant-name'), applicantCountry: document.getElementById('applicant-country'),
+            applicantId: document.getElementById('applicant-id'), applicantReason: document.getElementById('applicant-reason'),
+            applicantBalance: document.getElementById('applicant-balance'), approveBtn: document.getElementById('approve-btn'),
+            denyBtn: document.getElementById('deny-btn'), hackBtn: document.getElementById('hack-btn'),
+            feedbackOverlayContainer: document.getElementById('feedback-overlay-container'), feedbackOverlay: document.getElementById('feedback-overlay'),
+            commsLog: document.getElementById('comms-log'),
+            hackMinigame: document.getElementById('hack-minigame'), hackSequence: document.getElementById('hack-sequence'),
+            hackInput: document.getElementById('hack-input'), hackTimer: document.getElementById('hack-timer')
+        };
 
-        // --- ESTADO DEL JUEGO ---
-        let slotId;
-        let gameSave;
-        let settings;
-        let currentApplicant;
-        let dayRules;
-        let timerInterval;
+        let slotId, gameSave, settings, currentApplicant, dayRules, mainTimerInterval, hackTimerInterval;
         let timeLeft;
         let applicantsProcessed = 0;
         const dailyGoal = 5;
-        const baseTimePerApplicant = 15;
+        const baseTimePerApplicant = 20;
 
-        // --- DATOS DEL JUEGO ---
         const names = ["Alejandro Díaz", "Sofía García", "Javier Rodríguez", "Camila Martínez", "Mateo Hernández", "Valentina Pérez"];
         const countries = ["Cuba", "EE.UU.", "Rusia", "España", "México", "Canadá"];
         const reasons = ["Intercambio Cultural", "Negocios", "Turismo", "Investigación Académica", "Contacto Familiar"];
 
-        // --- INICIALIZACIÓN ---
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             slotId = parseInt(urlParams.get('slot'), 10);
-
-            if (isNaN(slotId)) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            loadSettings();
-            loadGameSave();
-            startDay();
+            if (isNaN(slotId)) { window.location.href = 'index.html'; return; }
+            loadSettings(); loadGameSave(); startDay();
         });
 
         function loadSettings() {
@@ -150,152 +179,209 @@
             gameSave = gameSaves[slotId];
         }
 
-        // --- LÓGICA DEL DÍA ---
+        function saveGame() {
+            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+            let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+            gameSaves[slotId] = gameSave;
+            localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+        }
+
         function startDay() {
-            applicantsProcessed = 0;
+            applicantsProcessed = gameSave.applicantsProcessed || 0;
             updateUI();
             setDayRules();
-            nextApplicant();
+
+            if (gameSave.activeApplicant) {
+                loadActiveApplicant();
+            } else {
+                nextApplicant();
+            }
+        }
+        
+        function loadActiveApplicant() {
+            currentApplicant = gameSave.activeApplicant.data;
+            const totalTime = calculateTotalTime();
+            const elapsedTime = (Date.now() - gameSave.activeApplicant.startTime) / 1000;
+            const remainingTime = totalTime - elapsedTime;
+
+            updateUI();
+            if (remainingTime <= 0) {
+                processDecision(false); 
+            } else {
+                startTimer(remainingTime);
+            }
         }
 
         function setDayRules() {
-            rulesList.innerHTML = '';
-            // Las reglas se complican con cada día
+            elements.rulesList.innerHTML = '';
             switch (gameSave.day) {
-                case 1:
-                    dayRules = { allowedCountries: ["Cuba"] };
-                    addRule("Solo se permite acceso a ciudadanos de Cuba.");
-                    break;
-                case 2:
-                    dayRules = { allowedCountries: ["Cuba", "Rusia"], bannedReasons: ["Negocios"] };
-                    addRule("Acceso permitido: Cuba, Rusia.");
-                    addRule("Motivo 'Negocios' está denegado.");
-                    break;
-                case 3:
-                     dayRules = { allowedCountries: ["Cuba", "Rusia", "México"], bannedCountries: ["EE.UU."] };
-                     addRule("Acceso permitido: Cuba, Rusia, México.");
-                     addRule("Denegar todas las solicitudes de EE.UU.");
-                     break;
-                default:
-                    dayRules = { bannedCountries: ["EE.UU.", "España"], bannedReasons: ["Turismo", "Negocios"] };
-                    addRule("Acceso denegado a: EE.UU., España.");
-                    addRule("Motivos denegados: Turismo, Negocios.");
-                    break;
+                case 1: dayRules = { allowedCountries: ["Cuba"] }; addRule("Solo se permite acceso a ciudadanos de Cuba."); break;
+                case 2: dayRules = { allowedCountries: ["Cuba", "Rusia"], bannedReasons: ["Negocios"] }; addRule("Acceso permitido: Cuba, Rusia."); addRule("Motivo 'Negocios' está denegado."); break;
+                case 3: dayRules = { allowedCountries: ["Cuba", "Rusia", "México"], bannedCountries: ["EE.UU."] }; addRule("Acceso permitido: Cuba, Rusia, México."); addRule("Denegar todas las solicitudes de EE.UU."); break;
+                default: dayRules = { bannedCountries: ["EE.UU.", "España"], bannedReasons: ["Turismo", "Negocios"] }; addRule("Acceso denegado a: EE.UU., España."); addRule("Motivos denegados: Turismo, Negocios."); break;
             }
         }
 
-        function addRule(text) {
-            const li = document.createElement('li');
-            li.textContent = text;
-            rulesList.appendChild(li);
-        }
+        function addRule(text) { const li = document.createElement('li'); li.textContent = text; elements.rulesList.appendChild(li); }
 
         function nextApplicant() {
-            if (applicantsProcessed >= dailyGoal) {
-                endDay();
-                return;
-            }
+            if (applicantsProcessed >= dailyGoal) { endDay(); return; }
             applicantsProcessed++;
+            gameSave.applicantsProcessed = applicantsProcessed;
+            
             currentApplicant = generateApplicant();
+            gameSave.activeApplicant = { data: currentApplicant, startTime: Date.now() };
+            saveGame();
+
+            elements.applicantDataContainer.style.display = 'none';
+            void elements.applicantDataContainer.offsetWidth;
+            elements.applicantDataContainer.style.display = 'block';
             updateUI();
             startTimer();
         }
 
         function endDay() {
-            clearInterval(timerInterval);
-            approveBtn.disabled = true;
-            denyBtn.disabled = true;
-            showFeedback(true, `FIN DEL DÍA ${gameSave.day}<br><small>Ganancia: ${gameSave.money} créditos</small>`);
-            
+            clearInterval(mainTimerInterval);
+            elements.approveBtn.disabled = true; elements.denyBtn.disabled = true;
+            let endDayMessage = settings.lang === 'es' ? `FIN DEL DÍA ${gameSave.day}<br><small>Créditos: ${gameSave.money}</small>` : `END OF DAY ${gameSave.day}<br><small>Credits: ${gameSave.money}</small>`;
+            showFeedback(true, endDayMessage);
             gameSave.day++;
-            
-            const savedData = localStorage.getItem('protocoloAccesoGameSaves');
-            let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
-            gameSaves[slotId] = gameSave;
-            localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
-
+            gameSave.applicantsProcessed = 0; 
+            delete gameSave.activeApplicant; 
+            saveGame();
             setTimeout(() => location.reload(), 4000);
         }
 
-        // --- LÓGICA DEL SOLICITANTE ---
         function generateApplicant() {
             const applicant = {
-                name: names[Math.floor(Math.random() * names.length)],
-                country: countries[Math.floor(Math.random() * countries.length)],
-                id: `VEN-${Math.floor(1000 + Math.random() * 9000)}`,
-                reason: reasons[Math.floor(Math.random() * reasons.length)],
+                name: names[Math.floor(Math.random() * names.length)], country: countries[Math.floor(Math.random() * countries.length)],
+                id: `VEN-${Math.floor(1000 + Math.random() * 9000)}`, reason: reasons[Math.floor(Math.random() * reasons.length)],
+                balance: Math.floor(Math.random() * 951) + 50, hackAttempted: false,
+                responses: {
+                    approveCorrect: "¡Gracias, camarada! Conexión establecida.", approveIncorrect: "Demasiado fácil. La red es nuestra.",
+                    denyCorrect: "Entendido. Volveré a intentarlo.", denyIncorrect: "¿Por qué? ¡Solo quería hablar con mi familia!"
+                }
             };
-
-            // Determinar si es válido basado en las reglas del día
             let isValid = true;
             if (dayRules.allowedCountries && !dayRules.allowedCountries.includes(applicant.country)) isValid = false;
             if (dayRules.bannedCountries && dayRules.bannedCountries.includes(applicant.country)) isValid = false;
             if (dayRules.bannedReasons && dayRules.bannedReasons.includes(applicant.reason)) isValid = false;
             applicant.isValid = isValid;
-
             return applicant;
         }
 
-        // --- LÓGICA DE DECISIÓN ---
-        function startTimer() {
-            clearInterval(timerInterval);
+        function calculateTotalTime() {
             let time = baseTimePerApplicant;
             if (settings.difficulty === 'short') time *= 0.7;
             if (settings.difficulty === 'long') time *= 1.5;
-            timeLeft = time;
+            return time;
+        }
+        
+        function startTimer(initialTime = null) {
+            clearInterval(mainTimerInterval);
+            elements.timerBar.classList.remove('low-time');
+            const totalTime = calculateTotalTime();
+            timeLeft = initialTime !== null ? initialTime : totalTime;
             
-            timerInterval = setInterval(() => {
+            mainTimerInterval = setInterval(() => {
                 timeLeft--;
-                timerBar.style.width = `${(timeLeft / time) * 100}%`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    processDecision(false);
-                }
+                elements.timerBar.style.width = `${(timeLeft / totalTime) * 100}%`;
+                if (timeLeft <= 5) elements.timerBar.classList.add('low-time');
+                if (timeLeft <= 0) processDecision(false);
             }, 1000);
         }
 
         function processDecision(playerApproves) {
-            clearInterval(timerInterval);
+            clearInterval(mainTimerInterval);
             const isCorrect = playerApproves === currentApplicant.isValid;
+            let message, feedbackText;
 
             if (isCorrect) {
                 gameSave.money += 10;
-                showFeedback(true);
+                message = playerApproves ? currentApplicant.responses.approveCorrect : currentApplicant.responses.denyCorrect;
+                feedbackText = settings.lang === 'es' ? "DECISIÓN CORRECTA" : "CORRECT DECISION";
+                showFeedback(true, feedbackText);
             } else {
-                gameSave.money -= 15;
-                showFeedback(false);
+                gameSave.money -= 25;
+                message = playerApproves ? currentApplicant.responses.approveIncorrect : currentApplicant.responses.denyIncorrect;
+                feedbackText = playerApproves ? (settings.lang === 'es' ? "BRECHA DE SEGURIDAD" : "SECURITY BREACH") : (settings.lang === 'es' ? "BLOQUEO INCORRECTO" : "INCORRECT BLOCK");
+                showFeedback(false, feedbackText);
             }
             
-            setTimeout(nextApplicant, 1600);
+            delete gameSave.activeApplicant; 
+            saveGame();
+            addCommsLog(message, currentApplicant.name);
+            setTimeout(nextApplicant, 2000);
         }
 
-        approveBtn.addEventListener('click', () => processDecision(true));
-        denyBtn.addEventListener('click', () => processDecision(false));
+        function startHackMinigame() {
+            elements.approveBtn.disabled = true; elements.denyBtn.disabled = true;
+            const sequence = Array(8).fill(0).map(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]).join('');
+            elements.hackSequence.textContent = sequence;
+            elements.hackInput.value = '';
+            elements.hackMinigame.style.display = 'flex';
+            elements.hackInput.focus();
+            let hackTime = 7;
+            elements.hackTimer.style.transition = `width ${hackTime}s linear`;
+            elements.hackTimer.style.width = '100%';
+            setTimeout(() => { elements.hackTimer.style.width = '0%'; }, 100);
+            hackTimerInterval = setTimeout(() => processHackResult(false), hackTime * 1000);
+            elements.hackInput.oninput = () => { if (elements.hackInput.value.toUpperCase() === sequence) { processHackResult(true); } };
+        }
 
-        // --- FUNCIONES DE UI ---
-        function updateUI() {
-            dayCounter.textContent = `DÍA: ${gameSave.day}`;
-            moneyCounter.textContent = `CRÉDITOS: ${gameSave.money}`;
-            applicantCounter.textContent = `SOLICITUD: ${applicantsProcessed} / ${dailyGoal}`;
-            if (currentApplicant) {
-                applicantName.textContent = currentApplicant.name;
-                applicantCountry.textContent = currentApplicant.country;
-                applicantId.textContent = currentApplicant.id;
-                applicantReason.textContent = currentApplicant.reason;
+        function processHackResult(success) {
+            clearTimeout(hackTimerInterval);
+            currentApplicant.hackAttempted = true;
+            gameSave.activeApplicant.data.hackAttempted = true; 
+            saveGame();
+            elements.hackMinigame.style.display = 'none';
+            let message;
+            if (success) {
+                const stolen = Math.floor(currentApplicant.balance * 0.30);
+                gameSave.money += stolen;
+                message = `HACKEO EXITOSO. +${stolen} créditos transferidos.`;
+                showFeedback(true, "ÉXITO");
+            } else {
+                gameSave.money -= 50;
+                message = `HACKEO FALLIDO. Actividad sospechosa detectada. Multa de 50 créditos impuesta.`;
+                showFeedback(false, "FALLO");
             }
+            addCommsLog(message);
+            updateUI();
+            elements.approveBtn.disabled = false; elements.denyBtn.disabled = false;
+        }
+
+        elements.approveBtn.addEventListener('click', () => processDecision(true));
+        elements.denyBtn.addEventListener('click', () => processDecision(false));
+        elements.hackBtn.addEventListener('click', startHackMinigame);
+
+        function updateUI() {
+            elements.dayCounter.textContent = `DÍA: ${gameSave.day}`;
+            elements.moneyCounter.textContent = `CRÉDITOS: ${gameSave.money}`;
+            elements.applicantCounter.textContent = `SOLICITUD: ${applicantsProcessed} / ${dailyGoal}`;
+            if (currentApplicant) {
+                elements.applicantName.textContent = currentApplicant.name;
+                elements.applicantCountry.textContent = currentApplicant.country;
+                elements.applicantId.textContent = currentApplicant.id;
+                elements.applicantReason.textContent = currentApplicant.reason;
+                elements.applicantBalance.textContent = currentApplicant.balance;
+                elements.hackBtn.disabled = currentApplicant.hackAttempted;
+            }
+        }
+
+        function addCommsLog(text, sender = 'SYSTEM') {
+            const p = document.createElement('p');
+            p.textContent = sender === 'SYSTEM' ? `> ${text}` : `> [${sender}]: ${text}`;
+            elements.commsLog.insertBefore(p, elements.commsLog.firstChild);
+            elements.commsLog.scrollTop = 0;
         }
 
         function showFeedback(isCorrect, customHtml = '') {
-            feedbackOverlay.classList.remove('correct', 'incorrect');
-            if (isCorrect) {
-                feedbackOverlay.innerHTML = customHtml || 'CORRECTO';
-                feedbackOverlay.classList.add('correct');
-            } else {
-                feedbackOverlay.innerHTML = customHtml || 'INCORRECTO';
-                feedbackOverlay.classList.add('incorrect');
-            }
-            feedbackOverlay.style.display = 'flex';
-            setTimeout(() => feedbackOverlay.style.display = 'none', 1500);
+            elements.feedbackOverlay.classList.remove('correct', 'incorrect');
+            elements.feedbackOverlay.innerHTML = customHtml;
+            elements.feedbackOverlay.classList.add(isCorrect ? 'correct' : 'incorrect');
+            elements.feedbackOverlayContainer.style.display = 'flex';
+            setTimeout(() => elements.feedbackOverlayContainer.style.display = 'none', 1500);
         }
     </script>
 </body>
