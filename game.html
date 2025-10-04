@@ -12,6 +12,7 @@
 <body>
     <div id="vignette" class="overlay"></div>
     
+    <!-- === MODALES DEL JUEGO === -->
     <div id="feedback-overlay-container" class="modal-overlay">
         <div id="feedback-overlay"></div>
     </div>
@@ -55,6 +56,17 @@
             </div>
         </div>
     </div>
+    
+    <!-- *** NUEVO: MODAL PARA ESCENAS DE HISTORIA *** -->
+    <div id="story-scene-overlay" class="modal-overlay">
+        <div class="modal-box story-box">
+            <img id="story-char-img" src="" alt="Personaje"/>
+            <div class="story-dialogue">
+                <p id="story-dialogue-text"></p>
+                <div id="story-choices"></div>
+            </div>
+        </div>
+    </div>
 
     <div id="tutorial-overlay" class="modal-overlay" style="display: none;">
         <div id="tutorial-highlighter"></div>
@@ -63,22 +75,30 @@
             <button id="tutorial-next-btn" class="action-button">SIGUIENTE ></button>
         </div>
     </div>
-
+    
+    <!-- === INTERFAZ PRINCIPAL DEL JUEGO === -->
     <div class="game-container" style="visibility: hidden;">
         <div class="applicant-pane">
             <h1>Solicitud de Acceso</h1>
-            <div id="applicant-data-container">
-                <div class="applicant-field"><strong>Nombre:</strong> <span id="applicant-name"></span></div>
-                <div class="applicant-field" style="animation-delay: 0.1s;"><strong>País de Origen:</strong> <span id="applicant-country"></span></div>
-                <div class="applicant-field" style="animation-delay: 0.2s;"><strong>ID de Conexión:</strong> <span id="applicant-id"></span></div>
-                <div class="applicant-field" style="animation-delay: 0.3s;"><strong>Motivo de Conexión:</strong> <span id="applicant-reason"></span></div>
-                <div id="financial-info" class="applicant-field" style="animation-delay: 0.4s;">
-                    <strong>Datos Financieros:</strong> 
-                    <span>Saldo: <span id="applicant-balance"></span> Créditos</span>
-                    <button id="hack-btn">[ INICIAR HACKEO ]</button>
+            <!-- *** MODIFICADO: CONTENEDOR PARA FOTO Y DATOS *** -->
+            <div class="applicant-presentation">
+                <div class="applicant-photo-container">
+                    <img id="applicant-photo" src="" alt="Retrato del solicitante" />
+                </div>
+                <div id="applicant-data-container">
+                    <div class="applicant-field"><strong>Nombre:</strong> <span id="applicant-name"></span></div>
+                    <div class="applicant-field" style="animation-delay: 0.1s;"><strong>País de Origen:</strong> <span id="applicant-country"></span></div>
+                    <div class="applicant-field" style="animation-delay: 0.2s;"><strong>ID de Conexión:</strong> <span id="applicant-id"></span></div>
+                    <div class="applicant-field" style="animation-delay: 0.3s;"><strong>Motivo de Conexión:</strong> <span id="applicant-reason"></span></div>
                 </div>
             </div>
+            <div id="financial-info" class="applicant-field" style="animation-delay: 0.4s;">
+                <strong>Datos Financieros:</strong> 
+                <span>Saldo: <span id="applicant-balance"></span> Créditos</span>
+                <button id="hack-btn">[ INICIAR HACKEO ]</button>
+            </div>
         </div>
+
         <div class="info-pane">
             <div id="stats-box" class="info-box">
                 <span id="day-counter">DÍA: 1</span>
@@ -101,8 +121,8 @@
     </div>
 
     <div class="decision-bar" style="visibility: hidden;">
-        <button id="approve-btn">Aprobar</button>
-        <button id="deny-btn">Denegar</button>
+        <button id="approve-btn" class="decision-button">Aprobar</button>
+        <button id="deny-btn" class="decision-button">Denegar</button>
     </div>
 
     <script src="script-game.js"></script>
