@@ -101,6 +101,28 @@ body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-
 
 #lore-reveal-text { font-size: 1.8rem; font-style: italic; max-width: 80%; margin: 20px auto; }
 
+/* NUEVO: Estilos para el Overlay de Carga */
+#connecting-overlay .connecting-box {
+    font-family: 'Special Elite', cursive;
+    font-size: 2.5rem;
+    text-shadow: 0 0 10px var(--glow-color);
+    text-align: center;
+    animation: pulse-warning 2s infinite;
+}
+.spinner {
+    margin: 20px auto 0;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1.5s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 @keyframes fade-in-game { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fade-in-field { from { opacity: 0; transform: translateX(-15px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes fade-in-out { 0% { opacity: 0; transform: scale(0.8); } 15% { opacity: 1; transform: scale(1); } 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
@@ -134,4 +156,5 @@ body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-
     #tutorial-box { width: 90%; bottom: 80px; }
     #tutorial-text { font-size: 1.2rem; }
     #lore-reveal-text { font-size: 1.3rem; }
+    #connecting-overlay .connecting-box { font-size: 1.5rem; }
 }
