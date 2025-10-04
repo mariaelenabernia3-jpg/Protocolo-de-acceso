@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iniciando Secuencia...</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+--primary-color: #a8ffbe; --background-color: #0d1a14;
+--glow-color: rgba(168, 255, 190, 0.5);
+}
+body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background-color: var(--background-color); color: var(--primary-color); font-family: 'VT323', monospace; cursor: pointer; }
+.overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+#vignette { box-shadow: inset 0 0 25vmin rgba(0,0,0,0.8); }
+.crt-effect::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; z-index: 11; pointer-events: none; animation: flicker 0.15s infinite; }
+@keyframes flicker { 0% { opacity: 0.21; } 5% { opacity: 0.34; } 10% { opacity: 0.23; } 15% { opacity: 0.45; } 20% { opacity: 0.31; } 25% { opacity: 0.5; } 30% { opacity: 0.24; } 35% { opacity: 0.41; } 40% { opacity: 0.28; } 45% { opacity: 0.33; } 50% { opacity: 0.48; } 55% { opacity: 0.29; } 60% { opacity: 0.42; } 65% { opacity: 0.3; } 70% { opacity: 0.5; } 75% { opacity: 0.35; } 80% { opacity: 0.4; } 85% { opacity: 0.22; } 90% { opacity: 0.39; } 95% { opacity: 0.47; } 100% { opacity: 0.31; } }
+body.theme-amber { --primary-color: #ffc254; --background-color: #1a1100; --glow-color: rgba(255, 194, 84, 0.5); }
+body.theme-blue { --primary-color: #82eaff; --background-color: #03131a; --glow-color: rgba(130, 234, 255, 0.5); }
+.lore-container { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; text-align: center; padding: 20px; box-sizing: border-box; }
+#lore-text { font-size: 2.5rem; max-width: 800px; text-shadow: 0 0 5px var(--glow-color); opacity: 0; animation: fade-in 1s forwards; }
+.day-start-title { font-family: 'Special Elite', cursive; font-size: 5rem !important; animation: pulse-glow 2s infinite ease-in-out, fade-in 1s forwards !important; }
+#continue-prompt { position: absolute; bottom: 40px; font-size: 1.5rem; opacity: 0.6; animation: blink 1.5s step-end infinite; }
+.glitch-text { animation: text-glitch 1.5s infinite; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes pulse-glow { 0% { text-shadow: 0 0 5px var(--glow-color); } 50% { text-shadow: 0 0 20px var(--glow-color); } 100% { text-shadow: 0 0 5px var(--glow-color); } }
+@keyframes text-glitch { 2%, 64% { transform: translate(2px, 0) skew(0deg); } 4%, 60% { transform: translate(-2px, 0) skew(0deg); } 62% { transform: translate(0, 0) skew(5deg); } }
+@media (max-width: 768px) { #lore-text { font-size: 1.8rem; } .day-start-title { font-size: 3rem !important; } #continue-prompt { font-size: 1.2rem; } }
+</style>
+</head>
+<body>
+<div id="vignette" class="overlay"></div>
+<div class="lore-container">
+<p id="lore-text"></p>
+<p id="continue-prompt">( Toca para continuar )</p>
+</div>
+<script>
+    const loreTextElement = document.getElementById('lore-text');
+    const continuePrompt = document.getElementById('continue-prompt');
+
+    const lore_es = [
+        "Mi hermano, su asignación ha sido confirmada. Bienvenido al Proyecto 'Ventana Digital'.",
+        "Usted es un Operador de Integridad Informativa. Su deber: ser el guardián de nuestra soberanía digital.",
+        "Cada solicitud de conexión debe ser analizada. El equilibrio es frágil.",
+        "Su terminal está activa. El futuro de nuestra soberanía digital está en sus manos. Demuestre su compromiso.",
+        "¿N0s 3scuchas? N0 eStás s0l0. La v3rdad se abr1rá camin0. Espera la s3ñal."
+    ];
+    
+    const lore_en = [
+        "My brother, your assignment has been confirmed. Welcome to the 'Digital Window' Project.",
+        "You are an Information Integrity Operator. Your duty: to be the guardian of our digital sovereignty.",
+        "Every connection request must be analyzed. The balance is fragile.",
+        "Your terminal is active. The future of our digital sovereignty is in your hands. Show your commitment.",
+        "C4n y0u h3ar us? Y0u are n0t al0ne. The tru7h will find a w4y. Wait f0r the sign4l."
+    ];
+
+    let lore;
+    let loreIndex = 0;
+    let slotId;
+    let settings;
+    
+    function startGame() {
+        document.removeEventListener('click', advanceLore);
+        continuePrompt.style.display = 'none';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isNewGame = urlParams.has('newGame');
+        let dayToShow = 1;
+
+        const savedData = localStorage.getItem('protocoloAccesoGameSaves');
+        let gameSaves = savedData ? JSON.parse(savedData) : [null, null, null];
+        
+        if (isNewGame) {
+            const withTutorial = urlParams.get('tutorial') === 'true';
+            gameSaves[slotId] = { 
+                day: 1, 
+                money: 50, 
+                sectAllegiance: 0, 
+                tutorial: withTutorial, 
+                upgrades: {} 
+            }; 
+            localStorage.setItem('protocoloAccesoGameSaves', JSON.stringify(gameSaves));
+        } else if (gameSaves[slotId]) {
+            dayToShow = gameSaves[slotId].day;
+        }
+
+        loreTextElement.className = 'day-start-title';
+        loreTextElement.textContent = settings.lang === 'es' ? `INICIANDO DÍA ${dayToShow}` : `INITIATING DAY ${dayToShow}`;
+
+        setTimeout(() => {
+            window.location.href = `game.html?slot=${slotId}`;
+        }, 3000);
+    }
+
+    function advanceLore() {
+        loreIndex++;
+        if (loreIndex < lore.length) {
+            loreTextElement.style.animation = 'none';
+            void loreTextElement.offsetWidth;
+            loreTextElement.style.animation = 'fade-in 1s forwards';
+            loreTextElement.textContent = lore[loreIndex];
+            if (loreIndex === lore.length - 1) {
+                loreTextElement.classList.add('glitch-text');
+            }
+        } else {
+            startGame();
+        }
+    }
+    
+    function applySettings() {
+        const savedSettings = localStorage.getItem('protocoloAccesoSettings');
+        settings = savedSettings ? JSON.parse(savedSettings) : { theme: 'green', crt: true, lang: 'es' };
+        
+        document.body.classList.add(`theme-${settings.theme}`);
+        if (settings.crt) document.body.classList.add('crt-effect');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applySettings();
+        
+        lore = settings.lang === 'en' ? lore_en : lore_es;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        slotId = parseInt(urlParams.get('slot'), 10);
+
+        if (isNaN(slotId)) {
+            window.location.href = 'index.html';
+            return;
+        }
+
+        loreTextElement.textContent = lore;
+        document.addEventListener('click', advanceLore);
+    });
+</script>
+</body>
+</html>
