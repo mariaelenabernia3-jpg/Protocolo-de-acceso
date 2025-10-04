@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">2
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protocolo de Acceso - Terminal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -93,6 +93,8 @@
         #tutorial-text { font-size: 1.5rem; margin: 0 0 15px 0; }
         #tutorial-next-btn { float: right; }
         
+        #lore-reveal-text { font-size: 1.8rem; font-style: italic; max-width: 80%; margin: 20px auto; }
+        
         @keyframes fade-in-game { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fade-in-field { from { opacity: 0; transform: translateX(-15px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes fade-in-out { 0% { opacity: 0; transform: scale(0.8); } 15% { opacity: 1; transform: scale(1); } 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
@@ -118,6 +120,7 @@
             #daily-briefing-news, .shop-item, #bills-list { font-size: 1.2rem !important; }
             #tutorial-box { width: 90%; bottom: 80px; }
             #tutorial-text { font-size: 1.2rem; }
+            #lore-reveal-text { font-size: 1.3rem; }
         }
     </style>
 </head>
@@ -158,6 +161,11 @@
                 <h3>Mercado Negro (Mejoras)</h3>
                 <p id="shop-money-display"></p>
                 <div id="shop-items"></div>
+                <button id="show-lore-btn" class="action-button">FINALIZAR COMPRAS</button>
+            </div>
+            <div id="lore-section" style="display: none;">
+                <h3>Transmisión Interceptada</h3>
+                <p id="lore-reveal-text"></p>
                 <button id="next-day-btn" class="action-button">PROCEDER AL DÍA SIGUIENTE</button>
             </div>
         </div>
@@ -189,7 +197,7 @@
         <div class="info-pane">
             <div id="stats-box" class="info-box">
                 <span id="day-counter">DÍA: 1</span>
-                <span id="money-counter">CRÉDITOS: 50</span>
+                <span id="money-counter">CRÉDITOS: 0</span>
                 <span id="applicant-counter">SOLICITUD: 1 / 5</span>
             </div>
             <div id="rules-box" class="info-box">
